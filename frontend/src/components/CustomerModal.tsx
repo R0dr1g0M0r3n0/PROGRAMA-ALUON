@@ -77,7 +77,7 @@ const CustomerModal: React.FC<Props> = ({ customer, onClose, onSave }) => {
       <div className="absolute inset-0" onClick={onClose} />
 
       <div
-        className="relative w-full max-w-4xl rounded-2xl flex flex-col overflow-hidden animate-fade-up"
+        className="relative w-full max-w-6xl rounded-2xl flex flex-col overflow-hidden animate-fade-up"
         style={{ background: '#ffffff', maxHeight: 'calc(100vh - 48px)', boxShadow: '0 24px 70px rgba(0,0,0,0.32)' }}
       >
         {/* Header */}
@@ -153,25 +153,25 @@ const CustomerModal: React.FC<Props> = ({ customer, onClose, onSave }) => {
               {/* 01 Empresa */}
               <section>
                 <SectionTitle n="01" label="Empresa" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
                   <div className="md:col-span-2"><FL>Nombre Comercial *</FL><FI name="nombreComercial" value={form.nombreComercial} onChange={handleChange} required /></div>
-                  <div><FL>Razón Social</FL><FI name="razonSocial" value={form.razonSocial} onChange={handleChange} /></div>
-                  <div><FL>Persona de Contacto</FL><FI name="personaContacto" value={form.personaContacto} onChange={handleChange} /></div>
                   <div><FL>Tipo de Documento</FL>
                     <select name="tipoDocumento" value={form.tipoDocumento} onChange={handleChange} className="field">
                       {['CIF','DNI','NIE','PASAPORTE'].map(v => <option key={v}>{v}</option>)}
                     </select>
                   </div>
-                  <div><FL>Tarifa</FL><FI name="tarifa" value={form.tarifa} onChange={handleChange} /></div>
+                  <div><FL>Razón Social</FL><FI name="razonSocial" value={form.razonSocial} onChange={handleChange} /></div>
+                  <div><FL>Persona de Contacto</FL><FI name="personaContacto" value={form.personaContacto} onChange={handleChange} /></div>
                   <div><FL>Teléfono</FL><FI name="telefono" value={form.telefono} onChange={handleChange} /></div>
                   <div><FL>Email</FL><FI name="email" type="email" value={form.email} onChange={handleChange} /></div>
+                  <div><FL>Tarifa</FL><FI name="tarifa" value={form.tarifa} onChange={handleChange} /></div>
                 </div>
               </section>
 
               {/* 02 Dirección fiscal */}
               <section>
                 <SectionTitle n="02" label="Dirección fiscal" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4">
                   <div className="md:col-span-2"><FL>Calle / Dirección</FL><FI name="direccion" value={form.direccion} onChange={handleChange} /></div>
                   <div><FL>CP</FL><FI name="cp" value={form.cp} onChange={handleChange} /></div>
                   <div><FL>Población</FL><FI name="poblacion" value={form.poblacion} onChange={handleChange} /></div>
@@ -183,11 +183,13 @@ const CustomerModal: React.FC<Props> = ({ customer, onClose, onSave }) => {
               {/* 03 Finanzas */}
               <section>
                 <SectionTitle n="03" label="Finanzas" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                  <div className="md:col-span-2"><FL>IBAN</FL><FI name="iban" value={form.iban} onChange={handleChange} /></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                  <div className="md:col-span-1"><FL>IBAN</FL><FI name="iban" value={form.iban} onChange={handleChange} /></div>
                   <div><FL>Forma de pago</FL><FI name="formaPago" value={form.formaPago} onChange={handleChange} /></div>
-                  <div><FL>Días vencimiento</FL><FI name="diasVencimiento" type="number" value={form.diasVencimiento} onChange={handleChange} /></div>
-                  <div><FL>Remanente</FL><FI name="remanente" type="number" value={form.remanente} onChange={handleChange} /></div>
+                  <div className="flex gap-4">
+                    <div className="flex-1"><FL>Días vto.</FL><FI name="diasVencimiento" type="number" value={form.diasVencimiento} onChange={handleChange} /></div>
+                    <div className="flex-1"><FL>Remanente</FL><FI name="remanente" type="number" value={form.remanente} onChange={handleChange} /></div>
+                  </div>
                 </div>
               </section>
             </>
