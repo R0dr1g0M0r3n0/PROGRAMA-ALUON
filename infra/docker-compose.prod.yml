@@ -1,0 +1,49 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: docker.io/r0dr1g0m0r3n0/aluon-saas-backend:prod
+    container_name: aluon-saas-backend-prod
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://192.168.99.14:${DB_PORT:-3000}/${DB_NAME:-aluonbbddprod}
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-aluon}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-aluon}
+      - APP_CORS_ALLOWED_ORIGINS=${APP_CORS_ALLOWED_ORIGINS}
+      - SPRING_MAIL_HOST=${SPRING_MAIL_HOST}
+      - SPRING_MAIL_PORT=${SPRING_MAIL_PORT}
+      - SPRING_MAIL_USERNAME=${SPRING_MAIL_USERNAME}
+      - SPRING_MAIL_PASSWORD=${SPRING_MAIL_PASSWORD}
+      - SPRING_MAIL_FROM=${SPRING_MAIL_FROM}
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH}
+      - SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE}
+    ports:
+      - "${BACKEND_PORT:-8082}:8080"
+    networks:
+      - aluon-network
+    restart: unless-stopped
+    logging: *default-logging
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    image: docker.io/r0dr1g0m0r3n0/aluon-saas-frontend:prod
+    container_name: aluon-saas-frontend-prod
+    ports:
+      - "${FRONTEND_PORT:-5175}:80"
+    networks:
+      - aluon-network
+    restart: unless-stopped
+    logging: *default-logging
+
+networks:
+  aluon-network:
+    driver: bridge

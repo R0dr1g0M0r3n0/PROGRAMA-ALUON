@@ -1,0 +1,37 @@
+version: "3.8"
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  backend:
+    image: docker.io/r0dr1g0m0r3n0/aluon-saas-backend:prod
+    container_name: aluon-saas-backend-prod
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://192.168.99.14:3000/aluonbbddprod
+      - SPRING_DATASOURCE_USERNAME=aluon
+      - SPRING_DATASOURCE_PASSWORD=aluon
+    ports:
+      - "8082:8080"
+    networks:
+      - aluon-network
+    restart: unless-stopped
+    logging: *default-logging
+
+  frontend:
+    image: docker.io/r0dr1g0m0r3n0/aluon-saas-frontend:prod
+    container_name: aluon-saas-frontend-prod
+    ports:
+      - "5175:80"
+    networks:
+      - aluon-network
+    restart: unless-stopped
+    logging: *default-logging
+
+networks:
+  aluon-network:
+    driver: bridge

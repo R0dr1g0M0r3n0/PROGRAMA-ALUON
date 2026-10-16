@@ -12,7 +12,7 @@ spring:
           starttls:
             enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:true}
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/aluonbbdd}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://192.168.99.14:3000/aluonbbddprod}
     username: ${SPRING_DATASOURCE_USERNAME:aluon}
     password: ${SPRING_DATASOURCE_PASSWORD:aluon}
   jpa:
