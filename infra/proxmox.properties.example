@@ -1,0 +1,11 @@
+# Plantilla. Copiar como proxmox.local.properties y completar localmente.
+# Este fichero no contiene secretos y sí puede versionarse.
+
+proxmox.host=192.168.100.64
+proxmox.web.url=https://192.168.100.64:8006
+proxmox.ssh.port=22
+proxmox.api.realm=pam
+proxmox.username=
+proxmox.password=
+proxmox.node.status=
+proxmox.virtual-machines.count=
