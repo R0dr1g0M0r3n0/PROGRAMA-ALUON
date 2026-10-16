@@ -1,0 +1,111 @@
+name: CI/CD Aluón
+
+on:
+  push:
+    branches:
+      - DEV2
+      - PREPROD
+      - PRODUCCION
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aluon-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validar código
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Compilar frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Ejecutar pruebas backend
+        working-directory: backend
+        run: ./mvnw -B test
+
+  deploy_dev2:
+    name: Desplegar DEV2
+    needs: validate
+    if: github.ref_name == 'DEV2'
+    runs-on: [self-hosted, linux, aluon-dev2]
+    environment: dev2
+    timeout-minutes: 30
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Desplegar stack DEV2
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -f /etc/aluon/dev2.env
+          docker info >/dev/null
+          docker compose --env-file /etc/aluon/dev2.env -f infra/docker-compose.dev2.yml config >/dev/null
+          docker compose --env-file /etc/aluon/dev2.env -f infra/docker-compose.dev2.yml up -d --build --remove-orphans
+          docker compose --env-file /etc/aluon/dev2.env -f infra/docker-compose.dev2.yml ps
+
+  deploy_preprod:
+    name: Desplegar PREPROD
+    needs: validate
+    if: github.ref_name == 'PREPROD'
+    runs-on: [self-hosted, linux, aluon-preprod]
+    environment: preprod
+    timeout-minutes: 30
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Desplegar stack PREPROD
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -f /etc/aluon/preprod.env
+          docker info >/dev/null
+          docker compose --env-file /etc/aluon/preprod.env -f infra/docker-compose.preprod.yml config >/dev/null
+          docker compose --env-file /etc/aluon/preprod.env -f infra/docker-compose.preprod.yml up -d --build --remove-orphans
+          docker compose --env-file /etc/aluon/preprod.env -f infra/docker-compose.preprod.yml ps
+
+  deploy_production:
+    name: Desplegar PRODUCCION
+    needs: validate
+    if: github.ref_name == 'PRODUCCION'
+    runs-on: [self-hosted, linux, aluon-prod]
+    environment: production
+    timeout-minutes: 30
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Desplegar stack PRODUCCION
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -f /etc/aluon/production.env
+          docker info >/dev/null
+          docker compose --env-file /etc/aluon/production.env -f infra/docker-compose.prod.yml config >/dev/null
+          docker compose --env-file /etc/aluon/production.env -f infra/docker-compose.prod.yml up -d --build --remove-orphans
+          docker compose --env-file /etc/aluon/production.env -f infra/docker-compose.prod.yml ps
