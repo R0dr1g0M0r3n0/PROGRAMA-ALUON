@@ -5,12 +5,12 @@
 # Todo en un solo comando desde tu Mac.
 #
 # Uso: ./scripts/release-prod.sh [remote_host] [remote_user]
-# Ejemplo: ./scripts/release-prod.sh 192.168.100.14 root
+# Ejemplo: ./scripts/release-prod.sh 192.168.99.14 root
 # ============================================================
 set -euo pipefail
 
 # ── Configuración ────────────────────────────────────────────
-REMOTE_HOST="${1:-192.168.100.14}"
+REMOTE_HOST="${1:-192.168.99.14}"
 REMOTE_USER="${2:-root}"
 BACKEND_IMAGE="r0dr1g0m0r3n0/aluon-saas-backend:prod"
 FRONTEND_IMAGE="r0dr1g0m0r3n0/aluon-saas-frontend:prod"
