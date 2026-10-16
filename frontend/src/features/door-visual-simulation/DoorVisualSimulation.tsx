@@ -1,9 +1,14 @@
 import { useDeferredValue } from 'react';
+import logo from '../../assets/logo.png';
 import { GoogleStreetViewExplorer } from './components/GoogleStreetViewExplorer';
 import { MaskRectSelector } from './components/MaskRectSelector';
 import { useDoorVisualSimulation } from './useDoorVisualSimulation';
 import { DoorConfigurator } from './components/DoorConfigurator';
 import { BudgetAssigner } from './components/BudgetAssigner';
+
+const logoOverlayStyle = {
+  filter: 'invert(1) drop-shadow(0 0 2px rgba(255,255,255,0.95)) drop-shadow(1px 0 0 rgba(255,255,255,0.95)) drop-shadow(-1px 0 0 rgba(255,255,255,0.95)) drop-shadow(0 1px 0 rgba(255,255,255,0.95)) drop-shadow(0 -1px 0 rgba(255,255,255,0.95))',
+} as const;
 
 export const DoorVisualSimulation = () => {
   const { state, actions } = useDoorVisualSimulation();
@@ -13,46 +18,53 @@ export const DoorVisualSimulation = () => {
   return (
     <div className="w-full flex flex-col gap-6">
       <div className="flex flex-col gap-6">
-        <section className="w-full bg-white rounded-2xl p-5 border flex flex-col" style={{ borderColor: '#e8eaed' }}>
+        <section className="w-full bg-white rounded-2xl border flex flex-col overflow-hidden" style={{ borderColor: '#e8eaed' }}>
           {(!canShowMaskSelector || !state.showMaskSelector) && (
             <div className="flex flex-col space-y-4">
-              <div className="flex items-center justify-between gap-4 shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#f8f9fb] flex items-center justify-center text-[#8b949e]">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                      <polyline strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" points="9 22 9 12 15 12 15 22" />
-                    </svg>
+              <div className="flex flex-col gap-4 p-5 pb-4">
+                <div className="flex flex-col gap-3 shrink-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-[#f8f9fb] flex items-center justify-center text-[#8b949e]">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                        <polyline strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" points="9 22 9 12 15 12 15 22" />
+                      </svg>
+                    </div>
+                    <label className="flex min-w-0 flex-1 items-center gap-2 text-xs font-black uppercase tracking-widest" style={{ color: '#8b949e' }}>
+                      <span className="shrink-0 whitespace-nowrap">Dirección</span>
+                      <input
+                        className="min-w-0 flex-1 rounded-xl border px-4 py-3 text-sm"
+                        placeholder="Ej: Calle Mayor 1, Madrid"
+                        value={state.address}
+                        onChange={e => actions.setAddress(e.target.value)}
+                        disabled={state.processing}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            void actions.loadBaseImage();
+                          }
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="btn-primary px-4 py-2 rounded-xl text-xs tracking-widest shrink-0 whitespace-nowrap"
+                      disabled={state.processing || state.viewerLoading || state.address.trim().length === 0}
+                      onClick={() => void actions.loadBaseImage()}
+                    >
+                      CARGAR SNAPSHOT
+                    </button>
                   </div>
-                   <div>
-              <label className="text-xs font-black uppercase tracking-widest" style={{ color: '#8b949e' }}>Dirección
-              <input
-                className="w-full rounded-xl border px-4 py-3 text-sm"
-                placeholder="Ej: Calle Mayor 1, Madrid"
-                value={state.address}
-                onChange={e => actions.setAddress(e.target.value)}
-                disabled={state.processing}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    void actions.loadBaseImage();
-                  }
-                }}
-              />
-              </label>
-            </div>
                 </div>
-                <button
-                  type="button"
-                  className="btn-primary px-4 py-2 rounded-xl text-xs tracking-widest shrink-0"
-                  disabled={state.processing || state.viewerLoading || state.address.trim().length === 0}
-                  onClick={() => void actions.loadBaseImage()}
-                >
-                  CARGAR SNAPSHOT
-                </button>
               </div>
 
-              <div className="h-[420px] md:h-[520px] overflow-hidden rounded-xl border border-dashed bg-white relative" style={{ borderColor: '#e8eaed' }}>
+              <div className="relative mx-5 h-[460px] md:h-[560px] overflow-hidden rounded-xl border border-dashed bg-white" style={{ borderColor: '#e8eaed' }}>
+                <img
+                  src={logo}
+                  alt="Aluon"
+                  className="pointer-events-none absolute top-4 right-4 z-10 w-28 md:w-32 object-contain opacity-95 drop-shadow-[0_8px_24px_rgba(0,0,0,0.28)]"
+                  style={logoOverlayStyle}
+                />
                 {state.baseImageUrl ? (
                   <img src={state.baseImageUrl} alt="Snapshot" className="w-full h-full object-contain bg-white" />
                 ) : state.address.trim() === '' ? (
@@ -79,7 +91,7 @@ export const DoorVisualSimulation = () => {
               </div>
 
               {canShowMaskSelector && (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 px-5">
                   <div className="text-xs font-semibold" style={{ color: '#8b949e' }}>
                     Snapshot cargado. Continúa con el formulario o selecciona el rectángulo de la puerta.
                   </div>
@@ -97,11 +109,17 @@ export const DoorVisualSimulation = () => {
           )}
 
           {canShowMaskSelector && state.showMaskSelector && (
-            <div className="flex flex-col space-y-4">
+            <div className="flex flex-col space-y-4 px-5 pb-5">
               <div className="text-xs font-black uppercase tracking-widest shrink-0" style={{ color: '#8b949e' }}>
                 Selecciona el rectángulo de la puerta
               </div>
-              <div className="h-[420px] md:h-[520px] flex items-center justify-center overflow-hidden rounded-xl border bg-gray-50">
+              <div className="relative h-[460px] md:h-[560px] flex items-center justify-center overflow-hidden rounded-xl border bg-gray-50">
+                <img
+                  src={logo}
+                  alt="Aluon"
+                  className="pointer-events-none absolute top-4 right-4 z-10 w-28 md:w-32 object-contain opacity-95 drop-shadow-[0_8px_24px_rgba(0,0,0,0.28)]"
+                  style={logoOverlayStyle}
+                />
                 <MaskRectSelector
                   imageUrl={state.baseImageUrl!}
                   disabled={state.processing}
@@ -119,18 +137,26 @@ export const DoorVisualSimulation = () => {
                   onClick={() => actions.setShowMaskSelector(false)}
                 >
                   VOLVER
-                </button>
+                  </button>
               </div>
             </div>
           )}
 
           {state.resultImageUrl && (
-            <div className="mt-6 flex flex-col space-y-3">
-              <div className="text-xs font-black uppercase tracking-widest shrink-0" style={{ color: '#8b949e' }}>
-                Resultado
-              </div>
-              <div className="h-[420px] md:h-[520px] flex items-center justify-center overflow-hidden rounded-xl border bg-gray-50">
-                <img src={state.resultImageUrl} alt="Resultado" className="max-w-full max-h-full object-contain" />
+            <div className="px-5 pb-5">
+              <div className="mt-6 flex flex-col space-y-3">
+                <div className="text-xs font-black uppercase tracking-widest shrink-0" style={{ color: '#8b949e' }}>
+                  Resultado
+                </div>
+                <div className="relative h-[460px] md:h-[560px] flex items-center justify-center overflow-hidden rounded-xl border bg-gray-50">
+                <img
+                  src={logo}
+                  alt="Aluon"
+                  className="pointer-events-none absolute top-4 right-4 z-10 w-28 md:w-32 object-contain opacity-95 drop-shadow-[0_8px_24px_rgba(0,0,0,0.28)]"
+                  style={logoOverlayStyle}
+                />
+                  <img src={state.resultImageUrl} alt="Resultado" className="max-w-full max-h-full object-contain" />
+                </div>
               </div>
             </div>
           )}

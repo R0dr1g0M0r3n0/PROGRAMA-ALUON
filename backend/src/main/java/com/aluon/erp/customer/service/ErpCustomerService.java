@@ -1,6 +1,7 @@
 package com.aluon.erp.customer.service;
 
 import com.aluon.crm.customer.model.Customer;
+import com.aluon.crm.customer.model.PaymentMethod;
 import com.aluon.crm.customer.service.CustomerService;
 import com.aluon.crm.customer.model.DeliveryAddress;
 import lombok.RequiredArgsConstructor;
@@ -75,7 +76,7 @@ public class ErpCustomerService {
                 .provincia(trimToNull(request.getProvincia()))
                 .pais(trimToNull(request.getPais()))
                 .iban(trimToNull(request.getIban()))
-                .formaPago(trimToNull(request.getFormaPago()))
+                .formaPago(normalizePaymentMethod(request.getFormaPago()))
                 .diasVencimiento(request.getDiasVencimiento())
                 .autoApproveQuotes(Boolean.TRUE.equals(request.getAutoApproveQuotes()))
                 .remanente(request.getRemanente())
@@ -101,7 +102,7 @@ public class ErpCustomerService {
         customer.setProvincia(trimToNull(request.getProvincia()));
         customer.setPais(trimToNull(request.getPais()));
         customer.setIban(trimToNull(request.getIban()));
-        customer.setFormaPago(trimToNull(request.getFormaPago()));
+        customer.setFormaPago(normalizePaymentMethod(request.getFormaPago()));
         customer.setDiasVencimiento(request.getDiasVencimiento());
         customer.setAutoApproveQuotes(Boolean.TRUE.equals(request.getAutoApproveQuotes()));
         customer.setRemanente(request.getRemanente());
@@ -177,6 +178,7 @@ public class ErpCustomerService {
         if (isBlank(request.getNombreComercial())) {
             throw new IllegalArgumentException("El nombre comercial es obligatorio");
         }
+        validatePaymentMethod(request.getFormaPago());
         if (request.getDireccionesEntrega() != null) {
             for (ErpDeliveryAddressRequest address : request.getDireccionesEntrega()) {
                 if (address == null) {
@@ -200,5 +202,19 @@ public class ErpCustomerService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private void validatePaymentMethod(String value) {
+        if (isBlank(value)) {
+            throw new IllegalArgumentException("La forma de pago es obligatoria");
+        }
+        if (!PaymentMethod.isValid(value)) {
+            throw new IllegalArgumentException("La forma de pago debe ser TRANSFERENCIA, GIRO, TARJETA o CONTADO");
+        }
+    }
+
+    private String normalizePaymentMethod(String value) {
+        validatePaymentMethod(value);
+        return PaymentMethod.normalize(value);
     }
 }

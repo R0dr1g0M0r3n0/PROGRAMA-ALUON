@@ -10,7 +10,7 @@ $companies = @(
 $cities = @("Madrid","Sevilla","Valencia","Bilbao","Malaga","Zaragoza","Alicante","Murcia","Valladolid","Oviedo")
 $provinces = @("Madrid","Sevilla","Valencia","Bizkaia","Malaga","Zaragoza","Alicante","Murcia","Valladolid","Asturias")
 $tarifas = @("A","B","C","VIP","PREMIUM","GENERAL")
-$formasPago = @("Transferencia","Contado","30 días","60 días","Confirming")
+$formasPago = @("TRANSFERENCIA","GIRO","TARJETA","CONTADO")
 $docTypes = @("CIF","DNI","NIE","PASAPORTE")
 
 function New-RandomPhone {
