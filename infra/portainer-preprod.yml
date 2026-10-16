@@ -12,7 +12,7 @@ services:
     container_name: aluon-saas-backend-preprod
     environment:
       - SPRING_PROFILES_ACTIVE=preprod
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://192.168.99.14:3000/aluonbbddpreprod
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://192.168.100.14:3000/aluonbbddpreprod
       - SPRING_DATASOURCE_USERNAME=aluon
       - SPRING_DATASOURCE_PASSWORD=aluon
     ports:
