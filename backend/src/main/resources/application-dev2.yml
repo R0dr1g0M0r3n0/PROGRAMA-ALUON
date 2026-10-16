@@ -16,7 +16,7 @@ spring:
     baseline-on-migrate: true
     validate-on-migrate: false
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://192.168.99.14:3000/aluonbbdd}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://192.168.100.14:3000/aluonbbdd}
     username: ${SPRING_DATASOURCE_USERNAME:aluon}
     password: ${SPRING_DATASOURCE_PASSWORD:aluon}
   jpa:

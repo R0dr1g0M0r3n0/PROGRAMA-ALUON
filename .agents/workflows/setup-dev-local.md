@@ -19,12 +19,12 @@ Este workflow te permite replicar el entorno **DEV2** en tu máquina local para 
 │           │ DB Connection                                    │
 └───────────┼──────────────────────────────────────────────────┘
             │
-            │ TCP Connection: 192.168.99.205:5432
+            │ TCP Connection: 192.168.100.205:5432
             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│            SERVIDOR DEV2 (192.168.99.x)                     │
+│            SERVIDOR DEV2 (192.168.100.x)                     │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │  PostgreSQL en Docker (192.168.99.205:5432)          │  │
+│  │  PostgreSQL en Docker (192.168.100.205:5432)          │  │
 │  │  Base de Datos: gestion_fayos_prod                   │  │
 │  │  ✅ COMPARTIDA entre Local y DEV2                    │  │
 │  └──────────────────────────────────────────────────────┘  │
@@ -44,7 +44,7 @@ Este workflow te permite replicar el entorno **DEV2** en tu máquina local para 
 - Node.js 18+ y npm
 - Java 17+ y Maven
 - Git configurado con acceso al repositorio
-- **Conectividad de red a `192.168.99.205:5432`** (base de datos DEV2)
+- **Conectividad de red a `192.168.100.205:5432`** (base de datos DEV2)
 
 ## 🚀 Setup Inicial (Solo Primera Vez)
 
@@ -54,14 +54,14 @@ Primero, verifica que puedes conectarte a la base de datos compartida:
 
 ```bash
 # Probar conexión con psql (si lo tienes instalado)
-psql -h 192.168.99.205 -p 5432 -U postgres -d gestion_fayos_prod
+psql -h 192.168.100.205 -p 5432 -U postgres -d gestion_fayos_prod
 
 # O con Docker
-docker run --rm -it postgres:15-alpine psql -h 192.168.99.205 -p 5432 -U postgres -d gestion_fayos_prod
+docker run --rm -it postgres:15-alpine psql -h 192.168.100.205 -p 5432 -U postgres -d gestion_fayos_prod
 ```
 
 **Credenciales:**
-- Host: `192.168.99.205`
+- Host: `192.168.100.205`
 - Puerto: `5432`
 - Usuario: `postgres`
 - Password: `password`
@@ -73,7 +73,7 @@ Crea un archivo `.env.local` en la raíz del proyecto (NO lo commitees):
 
 ```bash
 # .env.local - Configuración para desarrollo local
-DB_HOST=192.168.99.205
+DB_HOST=192.168.100.205
 DB_PORT=5432
 DB_NAME=gestion_fayos_prod
 DB_USER=postgres
@@ -121,7 +121,7 @@ docker run --rm -it \
   --name wildfly-local \
   -p 8080:8080 \
   -p 9990:9990 \
-  -e DB_HOST=192.168.99.205 \
+  -e DB_HOST=192.168.100.205 \
   -e DB_PORT=5432 \
   -e DB_NAME=gestion_fayos_prod \
   -e DB_USER=postgres \
@@ -181,7 +181,7 @@ Voy a crear un `docker-compose.local.yml` específico para desarrollo local que:
 ```bash
 # Terminal 1: Backend
 docker run --rm -it --name wildfly-local -p 8080:8080 -p 9990:9990 \
-  -e DB_HOST=192.168.99.205 -e DB_PORT=5432 -e DB_NAME=gestion_fayos_prod \
+  -e DB_HOST=192.168.100.205 -e DB_PORT=5432 -e DB_NAME=gestion_fayos_prod \
   -e DB_USER=postgres -e DB_PASSWORD=password \
   -v $(pwd)/modules/gas-shell/target/ROOT.war:/opt/jboss/wildfly/standalone/deployments/ROOT.war \
   # ... resto de volúmenes ...
@@ -211,7 +211,7 @@ cd modules/gas-shell/src/main/frontend && npm run dev
 **Para cambios en Base de Datos:**
 ⚠️ **CUIDADO**: Estás trabajando en la BBDD de DEV2, cualquier cambio afecta a todos.
 
-- Conecta con DBeaver/pgAdmin a `192.168.99.205:5432`
+- Conecta con DBeaver/pgAdmin a `192.168.100.205:5432`
 - Usuario: `postgres`, Password: `password`, DB: `gestion_fayos_prod`
 - **Mejor práctica**: Usa migraciones de Flyway en `src/main/resources/db/migration/`
 
@@ -269,8 +269,8 @@ git push origin DEV2  # Jenkins despliega
 
 | Aspecto | Local | DEV2 |
 |---------|-------|------|
-| **Base de Datos** | ✅ Misma que DEV2 (`192.168.99.205:5432`) | ✅ PostgreSQL en Docker |
-| **Backend** | WildFly en Docker (puerto 8080) | WildFly en Docker (puerto 80 vía 192.168.99.200) |
+| **Base de Datos** | ✅ Misma que DEV2 (`192.168.100.205:5432`) | ✅ PostgreSQL en Docker |
+| **Backend** | WildFly en Docker (puerto 8080) | WildFly en Docker (puerto 80 vía 192.168.100.200) |
 | **Frontend** | Vite Dev Server (5173, 5174) con HMR | Nginx sirviendo build estático (puerto 5173) |
 | **Hot Reload** | ✅ Instantáneo | ❌ Requiere rebuild via Jenkins |
 | **Datos** | ⚠️ COMPARTIDOS con DEV2, cuidado | Datos reales |
@@ -287,10 +287,10 @@ docker logs -f wildfly-local
 ```bash
 # Con Docker
 docker run --rm -it postgres:15-alpine psql \
-  -h 192.168.99.205 -p 5432 -U postgres -d gestion_fayos_prod
+  -h 192.168.100.205 -p 5432 -U postgres -d gestion_fayos_prod
 
 # O con psql nativo
-psql -h 192.168.99.205 -p 5432 -U postgres -d gestion_fayos_prod
+psql -h 192.168.100.205 -p 5432 -U postgres -d gestion_fayos_prod
 ```
 
 ### Compilar Solo un Módulo Específico
@@ -335,8 +335,8 @@ server: {
 ### Backend no encuentra la Base de Datos
 1. Verifica conectividad:
    ```bash
-   ping 192.168.99.205
-   telnet 192.168.99.205 5432
+   ping 192.168.100.205
+   telnet 192.168.100.205 5432
    ```
 2. Verifica que no haya firewall bloqueando
 3. Verifica que el contenedor de PostgreSQL en DEV2 esté corriendo
@@ -362,7 +362,7 @@ open -a Docker
 ### Error: "Cannot connect to database"
 Verifica que estás en la red correcta (VPN, misma red que el servidor DEV2):
 ```bash
-ping 192.168.99.205
+ping 192.168.100.205
 ```
 
 ## ✅ Checklist antes de Subir a DEV2
@@ -395,7 +395,7 @@ cd modules && mvn clean install -DskipTests -Dskip.frontend=true && cd ..
 
 # 3. Arrancar backend local (conectado a BBDD DEV2)
 docker run --rm -it --name wildfly-local -p 8080:8080 \
-  -e DB_HOST=192.168.99.205 -e DB_PORT=5432 -e DB_NAME=gestion_fayos_prod \
+  -e DB_HOST=192.168.100.205 -e DB_PORT=5432 -e DB_NAME=gestion_fayos_prod \
   # ... resto de configuración ...
 
 # 4. En otra terminal: arrancar frontend
@@ -438,7 +438,7 @@ services:
       - "8080:8080"
       - "9990:9990"
     environment:
-      - DB_HOST=192.168.99.205
+      - DB_HOST=192.168.100.205
       - DB_PORT=5432
       - DB_NAME=gestion_fayos_prod
       - DB_USER=postgres
