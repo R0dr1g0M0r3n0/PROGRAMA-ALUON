@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://192.168.100.64:3000/aluonbbdd}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://192.168.100.14:3000/aluonbbdd}
     driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.postgresql.Driver}
     username: ${SPRING_DATASOURCE_USERNAME:aluon}
     password: ${SPRING_DATASOURCE_PASSWORD:aluon}
