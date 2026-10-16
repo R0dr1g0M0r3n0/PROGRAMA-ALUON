@@ -1,5 +1,5 @@
 Param(
-  [string]$RemoteHost = "192.168.100.14",
+  [string]$RemoteHost = "192.168.100.64",
   [string]$RemoteUser = "root",
   [string]$AppDir = "/opt/aluon",
   [string]$EnvName = "dev2",
