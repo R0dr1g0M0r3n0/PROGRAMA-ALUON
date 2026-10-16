@@ -40,3 +40,5 @@ build/
 .gemini/
 .antigravity/
 infra/.env.dev.secrets
+infra/.env.local
+infra/proxmox.local.properties
