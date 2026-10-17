@@ -106,6 +106,6 @@ jobs:
           set -Eeuo pipefail
           test -f /etc/aluon/production.env
           docker info >/dev/null
-          docker compose --env-file /etc/aluon/production.env -f infra/docker-compose.prod.yml config >/dev/null
-          docker compose --env-file /etc/aluon/production.env -f infra/docker-compose.prod.yml up -d --build --remove-orphans
-          docker compose --env-file /etc/aluon/production.env -f infra/docker-compose.prod.yml ps
+          docker compose --env-file /etc/aluon/production.env -f infra/docker-compose.yml config >/dev/null
+          docker compose --env-file /etc/aluon/production.env -f infra/docker-compose.yml up -d --build --remove-orphans
+          docker compose --env-file /etc/aluon/production.env -f infra/docker-compose.yml ps
