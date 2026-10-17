@@ -1,156 +1,64 @@
+import { useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { DoorVisualSimulationActions, DoorVisualSimulationViewState } from '../DoorVisualSimulation.types';
+import { listCatalogFamilies, type CatalogFamilyResponse } from '../../work-orders/services/catalogModelsApi';
 
-type DoorConfiguratorProps = {
-  state: DoorVisualSimulationViewState;
-  actions: DoorVisualSimulationActions;
+type DoorConfiguratorProps = { state: DoorVisualSimulationViewState; actions: DoorVisualSimulationActions };
+const COLORS = [['A-NEPTUNE-SURF-MATT','A-NEPTUNE-SURF MATT','#aeb0aa'],['B-00169-GLOSS','B-00169-GLOSS','#292a2d'],['C-7016-MATT','C-7016 MATT','#4b5155'],['D-BLANCO-MATT','D-BLANCO MATT','#f1f0e9'],['E-1015-MATT','E-1015 MATT','#d9c8a7'],['F-MADERA','F-MADERA','#8d5b39']] as const;
+const OPENINGS = [['INTERIOR_RIGHT','Apertura interior derechas','/images/apertura derecha.png'],['INTERIOR_RIGHT_BEHIND_WALL','Apertura interior derechas instalada por detrás muro','/images/apertura derecha.png'],['INTERIOR_LEFT_BEHIND_WALL','Apertura interior izquierdas instalada por detrás muro','/images/apertura izquierda.png']] as const;
+const TYPES = [['Single Leaf','1 Hoja'],['Double Leaf','2 Hojas'],['Pivot','Pivotante'],['Sliding','Corredera']];
+const set = (actions: DoorVisualSimulationActions, patch: Parameters<DoorVisualSimulationActions['setPedestrianConfig']>[0]) => actions.setPedestrianConfig(patch);
+const resolveCatalogImage = (model: CatalogFamilyResponse): string | null => {
+  if (!model.imageUrl) return null;
+  if (model.imageUrl.startsWith('/') || model.imageUrl.startsWith('http')) return model.imageUrl;
+  const imageBySlug: Record<string, string> = {
+    'aluon-classic': '/legacy/aluon/images/aluonClassic.jpg',
+    'aluon-inox': '/legacy/aluon/images/aluonInox.jpg',
+    'aluon-premium': '/legacy/aluon/images/aluonPremium.jpg',
+    'aluon-veneciana': '/legacy/aluon/images/aluonVeneciana.jpg',
+  };
+  return imageBySlug[model.imageUrl] ?? null;
 };
 
-const MODELS = [
-  { id: 'Classic', label: 'Classic' },
-  { id: 'Bisel', label: 'Bisel' },
-  { id: 'Inox', label: 'Inox' },
-  { id: 'Premium', label: 'Premium' },
-  { id: 'Veneciana', label: 'Veneciana' }
-];
-
-const getModelImage = (modelo: string) => {
-  const key = modelo.toUpperCase();
-  switch (key) {
-    case 'CLASSIC':
-      return '/legacy/aluon/images/aluonClassic.jpg';
-    case 'BISEL':
-      return '/legacy/aluon/images/aluonBisel.jpg';
-    case 'INOX':
-      return '/legacy/aluon/images/aluonInox.jpg';
-    case 'PREMIUM':
-      return '/legacy/aluon/images/aluonPremium.jpg';
-    case 'VENECIANA':
-      return '/legacy/aluon/images/aluonVeneciana.jpg';
-    default:
-      return '/legacy/aluon/images/aluonClassic.jpg';
-  }
-};
-
-const TYPES = [
-  { id: 'Single Leaf', label: '1 Hoja' },
-  { id: 'Double Leaf', label: '2 Hojas' },
-  { id: 'Pivot', label: 'Pivotante' },
-  { id: 'Sliding', label: 'Corredera' }
-];
-
-const COLORS = [
-  { id: 'White', label: 'Blanco', hex: '#FFFFFF' },
-  { id: 'Black', label: 'Negro', hex: '#111111' },
-  { id: 'Wood', label: 'Madera', hex: '#8B5A2B' },
-  { id: 'Anthracite', label: 'Gris Antracita', hex: '#383E42' }
-];
+const SelectField = ({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) => <label className="block text-[11px] font-bold text-slate-600"><span className="mb-1.5 block uppercase tracking-wide text-slate-500">{label}</span><select value={value} onChange={event => onChange(event.target.value)} className="h-11 w-full rounded-xl border border-slate-300 bg-[#f7faef] px-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-[#6f8e2d] focus:ring-4 focus:ring-[#789333]/10">{children}</select></label>;
+const NumberField = ({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) => <label className="block text-[11px] font-bold text-slate-600"><span className="mb-1.5 block uppercase tracking-wide text-slate-500">{label} (mm)</span><input type="number" min="1" value={value} onChange={event => onChange(Number(event.target.value))} className="h-11 w-full rounded-xl border border-slate-300 bg-[#f7faef] px-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-[#6f8e2d] focus:ring-4 focus:ring-[#789333]/10" /></label>;
+const Section = ({ number, title, children }: { number: string; title: string; children: ReactNode }) => <section data-step={Number(number) - 1} className="border-b border-slate-200 px-5 py-8 last:border-b-0 sm:px-8"><div className="mb-6 flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-2xl bg-[#789333] text-xs font-black text-white shadow-md">{number}</span><h3 className="text-lg font-black tracking-tight text-slate-900">{title}</h3></div>{children}</section>;
 
 export const DoorConfigurator = ({ state, actions }: DoorConfiguratorProps) => {
-  return (
-    <div className="space-y-6 flex-1 overflow-y-auto pr-2">
-      <div>
-        <label className="text-xs font-black uppercase tracking-widest block mb-3" style={{ color: '#8b949e' }}>
-          Modelo de Puerta
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          {MODELS.map(m => (
-            <button
-              key={m.id}
-              onClick={() => actions.setDoorModel(m.id)}
-              className={`group relative flex flex-col justify-end text-left bg-white rounded-2xl overflow-hidden border hover:border-[var(--color-primary)] transition-all duration-200 active:scale-[0.98] shadow-sm h-32 w-full ${
-                state.doorModel === m.id
-                  ? 'border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/50'
-                  : 'border-slate-200'
-              }`}
-            >
-              {/* Image container serving as full background */}
-              <div className="absolute inset-0 w-full h-full bg-white flex items-center justify-center overflow-hidden">
-                <img
-                  src={getModelImage(m.id)}
-                  alt={m.label}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-
-              {/* Text Overlay */}
-              <div className="relative z-10 p-3 pt-6 space-y-0.5 bg-gradient-to-t from-white via-white/90 to-transparent w-full">
-                <span className="text-sm font-black text-slate-800 tracking-wider uppercase">
-                  Serie {m.label}
-                </span>
-                <p className="text-[9px] leading-relaxed text-slate-500 hidden sm:block">
-                  Acabados en aluminio de alta durabilidad y diseño moderno.
-                </p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs font-black uppercase tracking-widest block mb-3" style={{ color: '#8b949e' }}>
-          Tipo de Apertura
-        </label>
-        <div className="grid grid-cols-2 gap-2">
-          {TYPES.map(t => (
-            <button
-              key={t.id}
-              onClick={() => actions.setDoorType(t.id)}
-              className={`p-2 rounded-xl border text-xs font-bold transition-all ${
-                state.doorType === t.id
-                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-md'
-                  : 'border-[#e8eaed] bg-white text-[#57606a] hover:border-gray-300'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs font-black uppercase tracking-widest block mb-3" style={{ color: '#8b949e' }}>
-          Color / Acabado
-        </label>
-        <div className="grid grid-cols-4 gap-3">
-          {COLORS.map(c => (
-            <button
-              key={c.id}
-              title={c.label}
-              onClick={() => actions.setDoorColor(c.id)}
-              className={`w-full aspect-square rounded-full border-2 transition-all mx-auto max-w-[48px] ${
-                state.doorColor === c.id
-                  ? 'border-[var(--color-primary)] scale-110 shadow-md ring-2 ring-offset-2 ring-[var(--color-primary)]/50'
-                  : 'border-[#e8eaed] hover:scale-105'
-              }`}
-              style={{ backgroundColor: c.hex }}
-            />
-          ))}
-        </div>
-        {state.doorColor && (
-          <p className="text-xs text-center mt-2 font-semibold" style={{ color: '#57606a' }}>
-            {COLORS.find(c => c.id === state.doorColor)?.label}
-          </p>
-        )}
-      </div>
-      
-      {/* Opcional: mostrar el prompt generado para que el usuario pueda ajustarlo si quiere */}
-      <div className="pt-4 border-t border-dashed" style={{ borderColor: '#e8eaed' }}>
-        <label className="text-xs font-black uppercase tracking-widest flex items-center justify-between mb-2" style={{ color: '#8b949e' }}>
-          <span>Ajuste Manual (Prompt)</span>
-        </label>
-        <textarea
-          className="w-full text-sm font-semibold rounded-xl border px-3 py-2 bg-gray-50 focus:bg-white transition-colors"
-          style={{
-            borderColor: '#e8eaed',
-            color: '#24292f',
-            resize: 'none',
-          }}
-          rows={3}
-          value={state.prompt}
-          onChange={e => actions.setPrompt(e.target.value)}
-          placeholder="Ej: puerta blanca de dos hojas estilo clásico..."
-        />
-      </div>
-    </div>
-  );
+  const [saved, setSaved] = useState(false);
+  const [step, setStep] = useState(0);
+  const [catalogModels, setCatalogModels] = useState<CatalogFamilyResponse[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const p = state.pedestrian;
+  useEffect(() => {
+    let cancelled = false;
+    setCatalogLoading(true);
+    listCatalogFamilies().then(models => {
+      if (!cancelled) setCatalogModels(models);
+    }).catch(() => {
+      if (!cancelled) setCatalogError('No se han podido cargar los modelos del catálogo.');
+    }).finally(() => {
+      if (!cancelled) setCatalogLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+  const saveDraft = () => { window.localStorage.setItem('aluon-door-pedestrian-draft', JSON.stringify({ model: state.doorModel, color: state.doorColor, type: state.doorType, pedestrian: p })); setSaved(true); window.setTimeout(() => setSaved(false), 2200); };
+  const measuresValid = [p.widthMm, p.leafHeightMm, p.leftLeafHeightMm, p.rightLeafHeightMm, p.leftPostHeightMm, p.rightPostHeightMm, p.leftGroundClearanceMm, p.rightGroundClearanceMm].every(value => Number.isFinite(value) && value > 0);
+  const canAdvance = step === 0 ? Boolean(state.doorModel && catalogModels.some(model => model.technicalModel === state.doorModel)) : step === 1 ? Boolean(state.doorColor || p.colorFinish) : step === 2 ? Boolean(p.opening) : step === 3 ? measuresValid : true;
+  const nextStep = () => { if (canAdvance) setStep(current => Math.min(current + 1, 6)); };
+  const steps = ['Modelo', 'Color y acabado', 'Apertura', 'Medidas', 'Construcción', 'Herrajes', 'Revisión'];
+  return <div className="flex-1 overflow-y-auto bg-[#f6f6f3] p-3 sm:p-5"><div className="aluon-wizard mx-auto max-w-5xl overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white text-slate-800 shadow-[0_24px_70px_-42px_rgba(15,23,42,.55)]"><style>{`.aluon-wizard section { display: none; } .aluon-wizard section[data-step="${step}"] { display: block; }`}</style>
+    <header className="border-b border-slate-200 bg-gradient-to-r from-[#f7faef] to-white px-5 py-6 sm:px-8"><div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-[#789333]">GRUPOMARVER · CONFIGURADOR</p><h2 className="text-2xl font-black tracking-tight text-slate-900">Puerta peatonal</h2><p className="mt-1 text-sm text-slate-500">Configura cada detalle con una guía visual.</p></div><span className="rounded-full border border-[#b8c98a] bg-[#f2f7df] px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[#5c7425]">Paso {step + 1} de {steps.length}</span></div><SelectField label="Tipo de puerta" value={p.productFamily} onChange={value => set(actions, { productFamily: value })}><option value="CANCELAS_ALUMINIO_SOLDADO">Cancelas aluminio soldado</option><option value="PUERTA_ALUMINIO">Puerta de aluminio</option></SelectField><div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">{steps.map((label, index) => <button key={label} type="button" onClick={() => index <= step && setStep(index)} className={`rounded-xl border px-2 py-2 text-left text-[9px] font-bold uppercase tracking-wide transition hover:-translate-y-0.5 ${index === step ? 'border-[#789333] bg-[#789333] text-white shadow-lg' : index < step ? 'border-[#b8c98a] bg-[#f2f7df] text-[#5f7c26]' : 'border-slate-200 bg-white text-slate-400'}`}><span className="mr-1 text-[10px]">{index + 1}</span>{label}</button>)}</div></header>
+    {step === 0 && <Section number="01" title="Modelo"><div className="mb-4 text-xs text-slate-500">Selecciona un modelo activo del catálogo ALUON.</div>{catalogLoading ? <p className="border border-slate-200 px-4 py-6 text-sm text-slate-500">Cargando modelos del catálogo…</p> : catalogError ? <p className="border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-700">{catalogError}</p> : catalogModels.length === 0 ? <p className="border border-amber-200 bg-amber-50 px-4 py-6 text-sm text-amber-800">No hay modelos activos disponibles en la base de datos.</p> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{catalogModels.map(model => { const image = resolveCatalogImage(model); return <button key={model.id} type="button" onClick={() => actions.setDoorModel(model.technicalModel)} className={`border text-left transition focus:outline-none focus:ring-2 focus:ring-[#789333] ${state.doorModel === model.technicalModel ? 'border-[#789333] bg-[#f0f6d4]' : 'border-slate-200 bg-white hover:border-[#b8c98a]'}`}><div className="border-b border-slate-200 px-3 py-2 text-xs font-bold text-slate-700">{model.name}</div>{image ? <img src={image} alt={model.name} className="h-24 w-full object-contain p-2" /> : <div className="flex h-24 items-center justify-center bg-slate-50 px-3 text-center text-[10px] text-slate-400">Sin imagen de catálogo</div>}<div className="px-3 pb-3 text-[10px] text-slate-500">{model.technicalModel}</div></button>; })}</div>}</Section>}
+    <Section number="02" title="Color y acabado"><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{COLORS.map(([id,label,hex]) => <button key={id} type="button" onClick={() => { actions.setDoorColor(id); set(actions, { colorFinish: id }); }} className={`border p-2 text-left transition ${state.doorColor === id ? 'border-[#789333] bg-[#f0f6d4]' : 'border-slate-200 hover:border-[#b8c98a]'}`}><span className="mb-2 block h-12 w-full border border-slate-300" style={{ background: hex }} /><span className="block text-[10px] font-semibold text-slate-700">{label}</span></button>)}<button type="button" onClick={() => set(actions, { colorFinish: 'OTROS' })} className={`border p-2 text-left ${p.colorFinish === 'OTROS' ? 'border-[#789333] bg-[#f0f6d4]' : 'border-slate-200'}`}><span className="mb-2 block h-12 w-full border border-slate-300" style={{ background: 'conic-gradient(#d33 0 25%,#fc3 0 50%,#4c6 0 75%,#38c 0)' }} /><span className="text-[10px] font-semibold text-slate-700">Otros colores</span></button></div><div className="mt-5 max-w-md"><SelectField label="Imprimación marina" value={p.marinePrimer} onChange={value => set(actions, { marinePrimer: value as 'YES' | 'NO' | '' })}><option value="">Seleccionar</option><option value="YES">Necesario frente al mar a 3 km</option><option value="NO">No necesaria</option></SelectField></div></Section>
+    <Section number="03" title="Tipo de apertura (vista desde fuera)"><div className="grid gap-4 md:grid-cols-3">{OPENINGS.map(([id,label,image]) => <button key={id} type="button" onClick={() => set(actions, { opening: id })} className={`relative border p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-[#789333] ${p.opening === id ? 'border-[#789333] bg-[#f0f6d4]' : 'border-slate-200 hover:border-[#b8c98a]'}`}><span className="absolute right-2 top-2 text-[10px] text-slate-400">⌕</span><img src={image} alt="Croquis de apertura" className="h-36 w-full object-contain" /><span className="block text-xs font-bold leading-5 text-slate-700">{label}</span><span className="mt-1 block text-[10px] text-slate-500">Clic para ampliar</span></button>)}</div></Section>
+    <Section number="04" title="Medidas de la puerta (vista desde fuera)"><p className="mb-5 max-w-3xl text-xs leading-5 text-slate-500">Indique las medidas del hueco de luces y de los elementos de la puerta. Las alturas estándar se calculan con lamas completas y deben confirmarse antes de fabricar.</p><div className="grid gap-4 sm:grid-cols-2"><NumberField label="Ancho de la puerta (hueco luces)" value={p.widthMm} onChange={value => set(actions, { widthMm: value })} /><NumberField label="Altura hoja estándar" value={p.leafHeightMm} onChange={value => set(actions, { leafHeightMm: value })} /><NumberField label="Altura hoja izquierda" value={p.leftLeafHeightMm} onChange={value => set(actions, { leftLeafHeightMm: value })} /><NumberField label="Altura hoja derecha" value={p.rightLeafHeightMm} onChange={value => set(actions, { rightLeafHeightMm: value })} /><NumberField label="Alto poste derecho" value={p.rightPostHeightMm} onChange={value => set(actions, { rightPostHeightMm: value })} /><NumberField label="Alto poste izquierdo" value={p.leftPostHeightMm} onChange={value => set(actions, { leftPostHeightMm: value })} /><NumberField label="Holgura derecha" value={p.rightGroundClearanceMm} onChange={value => set(actions, { rightGroundClearanceMm: value })} /><NumberField label="Holgura izquierda" value={p.leftGroundClearanceMm} onChange={value => set(actions, { leftGroundClearanceMm: value })} /></div><label className="mt-5 flex items-center gap-2 text-xs font-semibold text-slate-600"><input type="checkbox" className="h-4 w-4 accent-[#789333]" /> ¿ENTENDIDO / SÍ</label></Section>
+    <Section number="05" title="Elementos constructivos"><div className="grid gap-4 sm:grid-cols-2"><SelectField label="Falseo inferior" value={p.lowerFalseo} onChange={value => set(actions, { lowerFalseo: value as 'YES' | 'NO' | '' })}><option value="">Seleccionar</option><option value="YES">Sí</option><option value="NO">No</option></SelectField><SelectField label="Dintel" value={p.lintel} onChange={value => set(actions, { lintel: value as 'CLOSED' | 'OPEN' | '' })}><option value="">Seleccionar</option><option value="CLOSED">Cerrado</option><option value="OPEN">Abierto</option></SelectField><SelectField label="Tipo de anclaje" value={p.anchor} onChange={value => set(actions, { anchor: value })}><option value="">Seleccionar</option><option>Preparado para atornillar a muro</option><option>Otro</option></SelectField><SelectField label="Tipo de bisagra" value={p.hinge} onChange={value => set(actions, { hinge: value })}><option value="">Seleccionar</option><option>Convencional</option><option>Otra</option></SelectField><SelectField label="Pilar de aluminio estructural 120x80x6" value={p.structuralPillar} onChange={value => set(actions, { structuralPillar: value as 'NONE' | 'RIGHT' | 'LEFT' | 'BOTH' | '' })}><option value="">Seleccionar</option><option value="NONE">No</option><option value="RIGHT">Derecho</option><option value="LEFT">Izquierdo</option><option value="BOTH">Ambos</option></SelectField></div></Section>
+    <Section number="06" title="Herrajes y accesorios"><div className="grid gap-4 sm:grid-cols-2"><SelectField label="Cerradero eléctrico" value={p.electricStrike} onChange={value => set(actions, { electricStrike: value as 'YES' | 'NO' | '' })}><option value="">Seleccionar</option><option value="YES">Sí</option><option value="NO">No</option></SelectField><SelectField label="Tirador exterior" value={p.exteriorPull} onChange={value => set(actions, { exteriorPull: value as 'NONE' | 'STANDARD' | 'LEVER' | '' })}><option value="">Seleccionar</option><option value="NONE">No</option><option value="STANDARD">Tirador estándar del modelo</option><option value="LEVER">Manivela estándar del modelo</option></SelectField><SelectField label="Manivela interior" value={p.interiorHandle} onChange={value => set(actions, { interiorHandle: value as 'NONE' | 'STANDARD' | 'INOX_KNOB' | '' })}><option value="">Seleccionar</option><option value="NONE">No</option><option value="STANDARD">Manivela estándar del modelo</option><option value="INOX_KNOB">Pomo giratorio inox</option></SelectField><SelectField label="Buzón" value={p.mailbox} onChange={value => set(actions, { mailbox: value as 'YES' | 'NO' | '' })}><option value="">Seleccionar</option><option value="YES">Sí</option><option value="NO">No</option></SelectField></div></Section>
+    <Section number="07" title="Guardar y enviar presupuesto"><div className="space-y-4"><label className="block text-xs font-semibold text-slate-600">Referencia cliente<input value={p.customerReference} onChange={event => set(actions, { customerReference: event.target.value })} className="mt-1 h-10 w-full border border-slate-300 px-3 text-sm" placeholder="Referencia del presupuesto" /></label><label className="block text-xs font-semibold text-slate-600">Dirección de entrega pedidos<input value={p.delivery} onChange={event => set(actions, { delivery: event.target.value })} className="mt-1 h-10 w-full border border-slate-300 px-3 text-sm" placeholder="Recoger en Grupo Marver" /></label><div className="grid gap-4 sm:grid-cols-2"><SelectField label="Propuesta para su cliente" value={p.customerProposal ? 'YES' : 'NO'} onChange={value => set(actions, { customerProposal: value === 'YES' })}><option value="NO">No</option><option value="YES">Sí</option></SelectField><SelectField label="Añadir coste de instalación" value={p.installationCost ? 'YES' : 'NO'} onChange={value => set(actions, { installationCost: value === 'YES' })}><option value="NO">No</option><option value="YES">Sí</option></SelectField></div><label className="block text-xs font-semibold text-slate-600">Observaciones<textarea value={p.notes} onChange={event => set(actions, { notes: event.target.value })} rows={3} className="mt-1 w-full border border-slate-300 px-3 py-2 text-sm" /></label><div className="border-t border-slate-200 pt-5"><p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-700">Resumen del presupuesto</p><p className="text-xs text-slate-500">{state.doorModel || 'Modelo pendiente'} · {state.doorColor || 'Color pendiente'} · {p.widthMm} × {p.leafHeightMm} mm</p></div><div className="flex flex-wrap items-center gap-3"><button type="button" onClick={saveDraft} className="border border-[#789333] bg-[#f0f6d4] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-[#536b22]">Guardar</button><button type="button" onClick={saveDraft} className="bg-[#c96268] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white hover:bg-[#b9535a]">Enviar presupuesto</button>{saved && <span className="text-xs font-semibold text-[#5f7c26]" role="status">Guardado en local</span>}</div></div></Section>
+    <Section number="08" title="Tipo de producto y color rápido"><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{TYPES.map(([id,label]) => <button key={id} type="button" onClick={() => actions.setDoorType(id)} className={`border px-3 py-2 text-xs font-semibold ${state.doorType === id ? 'border-[#789333] bg-[#f0f6d4]' : 'border-slate-200'}`}>{label}</button>)}</div><div className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-8">{['White','Black','Wood','Anthracite'].map((id,index) => <button key={id} type="button" aria-label={id} onClick={() => actions.setDoorColor(id)} className={`h-8 border ${state.doorColor === id ? 'border-[#789333] ring-2 ring-[#dce9b2]' : 'border-slate-300'}`} style={{ background: ['#fff','#111','#8b5a2b','#383e42'][index] }} />)}</div></Section>
+    <Section number="09" title="Ajuste manual de la simulación"><textarea value={state.prompt} onChange={event => actions.setPrompt(event.target.value)} rows={3} className="w-full border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-[#789333]" placeholder="Ajustes visuales adicionales para la simulación..." /></Section>
+    <nav className="flex items-center justify-between border-t border-slate-200 bg-[#fbfbf8] px-5 py-4 sm:px-8" aria-label="Navegación del configurador"><button type="button" onClick={() => setStep(current => Math.max(0, current - 1))} disabled={step === 0} className="border border-slate-300 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-slate-600 disabled:cursor-not-allowed disabled:opacity-40">Atrás</button><div className="text-center text-[11px] text-slate-500">{steps[step]}{!canAdvance && step < 4 ? <span className="ml-2 text-[#b45359]">Completa este paso para continuar</span> : null}</div><button type="button" onClick={nextStep} disabled={!canAdvance || step === 6} className="bg-[#789333] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white disabled:cursor-not-allowed disabled:bg-slate-300">{step === 6 ? 'Finalizado' : 'Siguiente'}</button></nav>
+  </div></div>;
 };

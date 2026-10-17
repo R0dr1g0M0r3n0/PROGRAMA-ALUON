@@ -1,0 +1,1 @@
+var e=async e=>{try{return await e.text()||`Error inesperado`}catch{return`Error inesperado`}},t=async()=>{let t=await fetch(`/api/catalog/families`);if(!t.ok)throw Error(await e(t));return await t.json()};export{t};

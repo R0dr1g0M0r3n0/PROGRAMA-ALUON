@@ -128,7 +128,9 @@ export const GoogleStreetViewExplorer = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const panoramaRef = useRef<PanoramaHandle | null>(null);
   const geocoderRef = useRef<GeocoderHandle | null>(null);
+  const geocodeRequestRef = useRef(0);
   const [loaded, setLoaded] = useState(false);
+  const [componentError, setComponentError] = useState<string | null>(null);
 
   // Stabilize callbacks via refs to prevent re-init of the panorama
   const onPositionChangeRef = useRef(onPositionChange);
@@ -156,9 +158,14 @@ export const GoogleStreetViewExplorer = ({
         return;
       }
       onLoadingChangeRef.current(true);
+      setComponentError(null);
       try {
         const google = await loadGoogleMaps(apiKey);
         if (cancelled || !google?.maps || !containerRef.current) {
+          return;
+        }
+
+        if (cancelled || !containerRef.current) {
           return;
         }
 
@@ -203,6 +210,7 @@ export const GoogleStreetViewExplorer = ({
         onErrorRef.current(null);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'No se pudo iniciar Street View';
+        setComponentError(message);
         onErrorRef.current(message);
       } finally {
         onLoadingChangeRef.current(false);
@@ -224,10 +232,15 @@ export const GoogleStreetViewExplorer = ({
       return;
     }
 
+    const requestId = ++geocodeRequestRef.current;
     onLoadingChangeRef.current(true);
     void geocoder.geocode({ address: trimmedAddress })
       .then(result => {
+        if (requestId !== geocodeRequestRef.current) {
+          return;
+        }
         if (result.results.length === 0) {
+          onErrorRef.current('No se encontró esa dirección');
           return;
         }
         const location = result.results[0].geometry.location;
@@ -236,19 +249,33 @@ export const GoogleStreetViewExplorer = ({
         onErrorRef.current(null);
       })
       .catch(() => {
+        if (requestId !== geocodeRequestRef.current) {
+          return;
+        }
         onErrorRef.current('No se pudo localizar la dirección en Street View');
       })
       .finally(() => {
-        onLoadingChangeRef.current(false);
+        if (requestId === geocodeRequestRef.current) {
+          onLoadingChangeRef.current(false);
+        }
       });
   }, []);
 
   useEffect(() => {
     const trimmedAddress = address.trim();
-    if (!loaded || trimmedAddress.length === 0) {
-      return;
+    if (!loaded || trimmedAddress.length < 3) {
+      geocodeRequestRef.current += 1;
+      return undefined;
     }
-    geocodeAddress(trimmedAddress);
+
+    const timeoutId = window.setTimeout(() => {
+      geocodeAddress(trimmedAddress);
+    }, 450);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      geocodeRequestRef.current += 1;
+    };
   }, [address, loaded, geocodeAddress]);
 
   // Handle external heading/pitch changes (like RESET) without geocoding
@@ -269,5 +296,18 @@ export const GoogleStreetViewExplorer = ({
     }
   }, [heading, pitch, loaded]);
 
-  return <div ref={containerRef} className="h-full w-full bg-[#edf1f4]" />;
+  return (
+    <div ref={containerRef} className="relative h-full w-full bg-[#edf1f4]">
+      {componentError && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-100/95 px-6 text-center">
+          <div className="max-w-md rounded-2xl border border-amber-200 bg-white p-6 shadow-lg">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-xl">!</div>
+            <h2 className="text-base font-black text-slate-900">No se pudo cargar Street View</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Google Maps ha rechazado la clave para este navegador. Puedes continuar usando el snapshot de fachada.</p>
+            <p className="mt-3 text-xs font-semibold text-amber-700">Activa Maps JavaScript API y permite http://127.0.0.1:5173/* en Google Cloud.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };

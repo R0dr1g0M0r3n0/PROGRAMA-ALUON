@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { DoorSimulationJobStatus, DoorVisualSimulationActions, DoorVisualSimulationViewState, MaskRect } from './DoorVisualSimulation.types';
+import type { DoorSimulationJobStatus, DoorVisualSimulationActions, DoorVisualSimulationViewState, MaskRect, PedestrianDoorConfig } from './DoorVisualSimulation.types';
 import { createDoorSimulationJob, getDoorSimulationFrontendConfig, getDoorSimulationStatus, startDoorSimulationInpaint } from './doorVisualSimulationApi';
 
 const clampInt = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, Math.round(value)));
@@ -12,7 +12,36 @@ const validateMaskRect = (rect: MaskRect, imageWidth: number, imageHeight: numbe
   return { x, y, width, height };
 };
 
+/**
+ * Completa consultas españolas para que Google no resuelva una calle/número
+ * homónimo en otro municipio. No cambia el texto que ve el usuario.
+ */
+export const normalizeMapAddress = (value: string): string => {
+  const trimmed = value.trim().replace(/\s+/g, ' ');
+  if (!trimmed) return '';
+
+  let normalized = trimmed;
+  if (/pantoja\s*,?\s*toledo/i.test(normalized)) {
+    // Google identifica esta vía en Pantoja como "C. Pilar".
+    normalized = normalized.replace(/calle\s+del\s+pilar|calle\s+pilar/gi, 'Calle Pilar');
+    if (!/\b45290\b/.test(normalized)) {
+      normalized = normalized.replace(/(pantoja\s*,?\s*toledo)/i, '$1, 45290');
+    }
+  }
+  if (!/\b(españa|spain)\b/i.test(normalized)) {
+    normalized = `${normalized}, España`;
+  }
+  return normalized;
+};
+
 export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewState; actions: DoorVisualSimulationActions } => {
+  const initialPedestrianConfig: PedestrianDoorConfig = {
+    productFamily: 'CANCELAS_ALUMINIO_SOLDADO', colorFinish: '',
+    marinePrimer: '', opening: '', widthMm: 1000, leafHeightMm: 1210, leftLeafHeightMm: 1210, rightLeafHeightMm: 1210,
+    rightPostHeightMm: 1000, leftPostHeightMm: 1000, rightGroundClearanceMm: 10, leftGroundClearanceMm: 10,
+    lowerFalseo: '', lintel: '', anchor: '', hinge: '', structuralPillar: '', electricStrike: '', exteriorPull: '',
+    interiorHandle: '', mailbox: '', customerReference: '', delivery: '', customerProposal: false, installationCost: false, notes: '',
+  };
   const [address, setAddress] = useState('');
   const [imageSize, setImageSize] = useState<'640x640' | '512x512'>('640x640');
   const [fov, setFov] = useState(90);
@@ -27,6 +56,7 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
   const [doorModel, setDoorModel] = useState('');
   const [doorType, setDoorType] = useState('');
   const [doorColor, setDoorColor] = useState('');
+  const [pedestrian, setPedestrian] = useState<PedestrianDoorConfig>(initialPedestrianConfig);
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
   const [baseImageUrl, setBaseImageUrl] = useState<string | null>(null);
@@ -99,6 +129,7 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
     setDoorModel('');
     setDoorType('');
     setDoorColor('');
+    setPedestrian(initialPedestrianConfig);
     setSelectedBudgetId(null);
   }, [stopPolling]);
 
@@ -112,7 +143,7 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
     setStatus(null);
     try {
       const resp = await createDoorSimulationJob({
-        address: address.trim(),
+        address: normalizeMapAddress(address),
         imageSize,
         fov,
         heading,
@@ -177,6 +208,14 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
       setError('Dimensiones de la imagen base no disponibles');
       return;
     }
+    if (!pedestrian.opening) {
+      setError('Selecciona el sentido de apertura de la puerta peatonal');
+      return;
+    }
+    if ([pedestrian.widthMm, pedestrian.leafHeightMm, pedestrian.leftLeafHeightMm, pedestrian.rightLeafHeightMm, pedestrian.leftPostHeightMm, pedestrian.rightPostHeightMm, pedestrian.leftGroundClearanceMm, pedestrian.rightGroundClearanceMm].some(value => !Number.isFinite(value) || value <= 0)) {
+      setError('Las medidas de la puerta peatonal deben ser valores positivos');
+      return;
+    }
     stopPolling();
     setError(null);
     setProcessing(true);
@@ -200,7 +239,7 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
       const message = e instanceof Error ? e.message : 'Error iniciando el inpainting';
       setError(message);
     }
-  }, [baseImageHeight, baseImageWidth, jobId, maskRect, negativePrompt, pollOnce, prompt, stopPolling]);
+  }, [baseImageHeight, baseImageWidth, jobId, maskRect, negativePrompt, pedestrian, pollOnce, prompt, stopPolling]);
 
   useEffect(() => {
     if (!doorModel && !doorType && !doorColor) return;
@@ -209,10 +248,19 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
     if (doorModel) elements.push(`${doorModel.toLowerCase()} style`);
     if (doorColor) elements.push(`${doorColor.toLowerCase()} color`);
     if (doorType) elements.push(`${doorType.toLowerCase()}`);
+    if (pedestrian.opening) elements.push(`puerta peatonal ${pedestrian.opening.replace(/_/g, ' ').toLowerCase()}`);
+    if (pedestrian.marinePrimer === 'YES') elements.push('marine primer protection');
+    if (pedestrian.widthMm > 0 && pedestrian.leafHeightMm > 0) elements.push(`${pedestrian.widthMm}mm wide ${pedestrian.leafHeightMm}mm high`);
+    if (pedestrian.exteriorPull === 'STANDARD') elements.push('standard exterior pull handle');
+    if (pedestrian.exteriorPull === 'LEVER') elements.push('standard exterior lever');
+    if (pedestrian.interiorHandle === 'INOX_KNOB') elements.push('stainless steel interior knob');
+    if (pedestrian.electricStrike === 'YES') elements.push('electric strike');
+    if (pedestrian.lintel === 'CLOSED') elements.push('closed lintel');
+    if (pedestrian.lintel === 'OPEN') elements.push('open lintel');
     
     const newPrompt = `A high quality, realistic replacement house door, ${elements.join(', ')}, clear daytime lighting, photorealistic, 8k resolution, architectural photography`;
     setPrompt(newPrompt);
-  }, [doorModel, doorType, doorColor]);
+  }, [doorModel, doorType, doorColor, pedestrian]);
 
   const state = useMemo<DoorVisualSimulationViewState>(() => ({
     address,
@@ -229,6 +277,7 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
     doorModel,
     doorType,
     doorColor,
+    pedestrian,
     selectedBudgetId,
     jobId,
     baseImageUrl,
@@ -240,7 +289,7 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
     processing,
     resultImageUrl,
     error,
-  }), [address, baseImageHeight, baseImageUrl, baseImageWidth, error, fov, heading, imageSize, jobId, latitude, longitude, mapsJavaScriptApiKey, maskRect, negativePrompt, doorModel, doorType, doorColor, selectedBudgetId, pitch, processing, prompt, resultImageUrl, showMaskSelector, status, viewerLoading]);
+  }), [address, baseImageHeight, baseImageUrl, baseImageWidth, error, fov, heading, imageSize, jobId, latitude, longitude, mapsJavaScriptApiKey, maskRect, negativePrompt, doorModel, doorType, doorColor, pedestrian, selectedBudgetId, pitch, processing, prompt, resultImageUrl, showMaskSelector, status, viewerLoading]);
 
   const actions = useMemo<DoorVisualSimulationActions>(() => ({
     setAddress,
@@ -259,6 +308,7 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
     setDoorModel,
     setDoorType,
     setDoorColor,
+    setPedestrianConfig: (patch: Partial<PedestrianDoorConfig>) => setPedestrian(current => ({ ...current, ...patch })),
     setSelectedBudgetId,
     setMaskRect,
     setShowMaskSelector,

@@ -52,6 +52,35 @@ export type DoorSimulationFrontendConfig = {
   mapsJavaScriptApiKey: string;
 };
 
+export type PedestrianDoorConfig = {
+  productFamily: string;
+  colorFinish: string;
+  marinePrimer: 'YES' | 'NO' | '';
+  opening: 'INTERIOR_RIGHT' | 'INTERIOR_RIGHT_BEHIND_WALL' | 'INTERIOR_LEFT_BEHIND_WALL' | '';
+  widthMm: number;
+  leafHeightMm: number;
+  leftLeafHeightMm: number;
+  rightLeafHeightMm: number;
+  rightPostHeightMm: number;
+  leftPostHeightMm: number;
+  rightGroundClearanceMm: number;
+  leftGroundClearanceMm: number;
+  lowerFalseo: 'YES' | 'NO' | '';
+  lintel: 'CLOSED' | 'OPEN' | '';
+  anchor: string;
+  hinge: string;
+  structuralPillar: 'NONE' | 'RIGHT' | 'LEFT' | 'BOTH' | '';
+  electricStrike: 'YES' | 'NO' | '';
+  exteriorPull: 'NONE' | 'STANDARD' | 'LEVER' | '';
+  interiorHandle: 'NONE' | 'STANDARD' | 'INOX_KNOB' | '';
+  mailbox: 'YES' | 'NO' | '';
+  customerReference: string;
+  delivery: string;
+  customerProposal: boolean;
+  installationCost: boolean;
+  notes: string;
+};
+
 export type DoorVisualSimulationViewState = {
   address: string;
   imageSize: '640x640' | '512x512';
@@ -67,6 +96,7 @@ export type DoorVisualSimulationViewState = {
   doorModel: string;
   doorType: string;
   doorColor: string;
+  pedestrian: PedestrianDoorConfig;
   selectedBudgetId: string | null;
   jobId: string | null;
   baseImageUrl: string | null;
@@ -94,6 +124,7 @@ export type DoorVisualSimulationActions = {
   setDoorModel: (value: string) => void;
   setDoorType: (value: string) => void;
   setDoorColor: (value: string) => void;
+  setPedestrianConfig: (patch: Partial<PedestrianDoorConfig>) => void;
   setSelectedBudgetId: (value: string | null) => void;
   setMaskRect: (value: MaskRect | null) => void;
   setShowMaskSelector: (value: boolean) => void;
