@@ -4,6 +4,7 @@ import { ProjectsTableFiltersBar } from './ProjectsTableFilters';
 import { useProjectsTableFiltering } from './useProjectsTableFiltering';
 import { documentManagementTheme } from '../documentManagementTheme';
 import { useProjectsTablePagination } from './useProjectsTablePagination';
+import { DocumentThumbnail } from '../../../components/DocumentThumbnail';
 
 type ProjectsTableProps = {
   rows: ProjectDocumentRow[];
@@ -181,6 +182,7 @@ export const ProjectsTable = ({
                     style={{ accentColor: documentManagementTheme.accent, width: 14, height: 14 }}
                   />
                 </th>
+                <TH label="Documento" />
                 <TH label="Cliente" />
                 <TH label="Tipo" />
                 <TH label="Número" />
@@ -192,7 +194,7 @@ export const ProjectsTable = ({
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <div className="flex flex-col items-center justify-center py-20 gap-4">
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: '#f9fafb', border: '1px solid #e5e7eb' }}>
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#9ca3af' }}>
@@ -236,6 +238,15 @@ export const ProjectsTable = ({
                           className="rounded cursor-pointer"
                           style={{ accentColor: documentManagementTheme.accent, width: 14, height: 14 }}
                         />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-3">
+                          <DocumentThumbnail type={row.type} />
+                          <div className="min-w-0">
+                            <div className="truncate font-bold" style={{ color: '#111827' }}>{row.number || 'Sin número'}</div>
+                            <div className="mt-0.5 text-[10px] uppercase tracking-[0.12em]" style={{ color: documentManagementTheme.muted }}>{row.type}</div>
+                          </div>
+                        </div>
                       </td>
                       <td className="px-3 py-2.5">
                         <div className="flex items-center gap-2">

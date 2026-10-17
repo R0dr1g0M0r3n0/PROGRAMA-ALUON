@@ -1,6 +1,7 @@
 import { DashboardCard } from './DashboardCard';
 import { dashboardTheme } from '../dashboardTheme';
 import type { DashboardDocumentRow } from '../Dashboard.types';
+import { DocumentThumbnail } from '../../../components/DocumentThumbnail';
 
 type Props = {
   title: string;
@@ -28,8 +29,9 @@ export const DocumentRowsCard = ({ title, accentColor, rows, emptyLabel, onRowCl
             className="w-full rounded-xl border px-3 py-2 text-left transition hover:bg-slate-50"
             style={{ borderColor: dashboardTheme.border, background: '#ffffff' }}
           >
-            <div className="grid grid-cols-[1fr_auto] gap-4 items-start">
-              <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <DocumentThumbnail type={row.type} size="sm" />
+              <div className="min-w-0 flex-1">
                 <div className="text-[12px] font-semibold truncate" style={{ color: dashboardTheme.text }}>
                   {row.customerName || 'Sin cliente'}
                 </div>
@@ -40,7 +42,7 @@ export const DocumentRowsCard = ({ title, accentColor, rows, emptyLabel, onRowCl
                   {row.statusLabel}
                 </div>
               </div>
-              <div className="text-right text-[10px] font-medium" style={{ color: '#94a3b8' }}>
+              <div className="self-start text-right text-[10px] font-medium" style={{ color: '#94a3b8' }}>
                 {formatFecha(row.createdAt)}
               </div>
             </div>
