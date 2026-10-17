@@ -35,13 +35,13 @@ export const normalizeMapAddress = (value: string): string => {
 };
 
 export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewState; actions: DoorVisualSimulationActions } => {
-  const initialPedestrianConfig: PedestrianDoorConfig = {
+  const initialPedestrianConfig = useMemo<PedestrianDoorConfig>(() => ({
     productFamily: 'CANCELAS_ALUMINIO_SOLDADO', colorFinish: '',
     marinePrimer: '', opening: '', widthMm: 1000, leafHeightMm: 1210, leftLeafHeightMm: 1210, rightLeafHeightMm: 1210,
     rightPostHeightMm: 1000, leftPostHeightMm: 1000, rightGroundClearanceMm: 10, leftGroundClearanceMm: 10,
     lowerFalseo: '', lintel: '', anchor: '', hinge: '', structuralPillar: '', electricStrike: '', exteriorPull: '',
     interiorHandle: '', mailbox: '', customerReference: '', delivery: '', customerProposal: false, installationCost: false, notes: '',
-  };
+  }), []);
   const [address, setAddress] = useState('');
   const [imageSize, setImageSize] = useState<'640x640' | '512x512'>('640x640');
   const [fov, setFov] = useState(90);
@@ -131,7 +131,7 @@ export const useDoorVisualSimulation = (): { state: DoorVisualSimulationViewStat
     setDoorColor('');
     setPedestrian(initialPedestrianConfig);
     setSelectedBudgetId(null);
-  }, [stopPolling]);
+  }, [initialPedestrianConfig, stopPolling]);
 
   const loadBaseImage = useCallback(async () => {
     stopPolling();

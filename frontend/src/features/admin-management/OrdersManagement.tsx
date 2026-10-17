@@ -11,10 +11,25 @@ const labels: Record<string, string> = { DRAFT: 'Borrador', PENDING_REVIEW: 'Pen
 
 const productLabels: Record<string, string> = { PUERTA_PEATONAL: 'Puerta peatonal', ABATIBLE_UNA: 'Abatible una hoja', ABATIBLE_DOS: 'Abatible dos hojas', CORREDERA: 'Corredera', VALLA: 'Valla' };
 
+type OrderConfigurationPayload = {
+  [key: string]: unknown;
+  model?: string;
+  productType?: string;
+  widthMm?: number;
+  heightMm?: number;
+  color?: string;
+  finish?: string;
+  notes?: string;
+  groundClearanceMm?: number;
+  hingeSide?: string;
+  openingSide?: string;
+  sections?: Array<{ widthMm?: number; heightMm?: number }>;
+};
+
 const ConfiguratorDetail = ({ item, onClose }: { item: AdminOrderConfiguration; onClose: () => void }) => {
   const [loading, setLoading] = useState(true);
-  const [payload, setPayload] = useState<Record<string, any> | null>(null);
-  useEffect(() => { let active = true; void getOrderConfiguration(item.id).then(result => { if (active) setPayload(result.payload as Record<string, any>); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [item.id]);
+  const [payload, setPayload] = useState<OrderConfigurationPayload | null>(null);
+  useEffect(() => { let active = true; void getOrderConfiguration(item.id).then(result => { if (active) setPayload(result.payload as OrderConfigurationPayload); }).finally(() => { if (active) setLoading(false); }); return () => { active = false; }; }, [item.id]);
   const model = payload?.model || item.model || '—';
   const productType = payload?.productType || item.productType;
   const width = payload?.widthMm || payload?.sections?.[0]?.widthMm || '—';
