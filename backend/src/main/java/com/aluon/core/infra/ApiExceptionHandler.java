@@ -17,6 +17,12 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleIllegalState(IllegalStateException ex) {
+        String message = ex.getMessage() != null ? ex.getMessage() : "La operación no está permitida en el estado actual";
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
+    }
+
     @ExceptionHandler(RestClientResponseException.class)
     public ResponseEntity<String> handleRestClient(RestClientResponseException ex) {
         String upstreamBody = safeBody(ex);

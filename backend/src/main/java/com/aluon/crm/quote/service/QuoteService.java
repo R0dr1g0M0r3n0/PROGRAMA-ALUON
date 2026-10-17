@@ -35,6 +35,9 @@ import com.aluon.crm.documents.model.DocumentPrefix;
 import com.aluon.crm.documents.model.DocumentSeries;
 import com.aluon.crm.documents.model.QuoteSeriesResolver;
 import com.aluon.crm.documents.service.DocumentNumberService;
+import com.aluon.production.order.dto.WorkOrderRequestResponseDto;
+import com.aluon.production.order.service.OrderService;
+import com.aluon.production.order.repository.OrderRepository;
 
 
 @Service
@@ -45,6 +48,8 @@ public class QuoteService {
     private final CustomerRepository customerRepository;
     private final CatalogDoorPricingService catalogDoorPricingService;
     private final DocumentNumberService documentNumberService;
+    private final OrderService orderService;
+    private final OrderRepository orderRepository;
 
     @Transactional
     public QuoteResponse create(QuoteCreateRequest request) {
@@ -110,6 +115,41 @@ public class QuoteService {
         quote.setStatus(QuoteStatus.VALIDADO);
         quote.setValidatedAt(LocalDateTime.now());
         return toResponse(Objects.requireNonNull(quoteRequestRepository.save(quote), "quote"));
+    }
+
+    @Transactional
+    public WorkOrderRequestResponseDto convertToOrder(UUID id) {
+        QuoteRequest quote = quoteRequestRepository.findById(Objects.requireNonNull(id, "id"))
+                .orElseThrow(() -> new IllegalArgumentException("Presupuesto no encontrado"));
+        if (quote.getStatus() != QuoteStatus.VALIDADO && quote.getStatus() != QuoteStatus.ENVIADO) {
+            throw new IllegalArgumentException("El presupuesto debe estar validado antes de crear una orden");
+        }
+        if (quote.getConvertedOrderId() != null) {
+            return orderRepository.findById(quote.getConvertedOrderId())
+                    .map(order -> WorkOrderRequestResponseDto.builder()
+                            .id(order.getId())
+                            .codigoOrden(order.getCodigoOrden())
+                            .build())
+                    .orElseThrow(() -> new IllegalStateException("La orden vinculada al presupuesto no existe"));
+        }
+        String sourceNote = "Generada desde presupuesto " + quote.getQuoteNumber();
+        WorkOrderRequestResponseDto legacyOrder = orderRepository.findFirstByNotesOrderByCreatedAtAsc(sourceNote)
+                .map(order -> WorkOrderRequestResponseDto.builder()
+                        .id(order.getId())
+                        .codigoOrden(order.getCodigoOrden())
+                        .build())
+                .orElse(null);
+        if (legacyOrder != null) {
+            quote.setConvertedOrderId(legacyOrder.getId());
+            quoteRequestRepository.save(quote);
+            return legacyOrder;
+        }
+        QuoteItem item = quote.getItems().stream().findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("El presupuesto no tiene líneas"));
+        WorkOrderRequestResponseDto created = orderService.createFromQuote(quote.getCustomer(), quote.getQuoteNumber(), item);
+        quote.setConvertedOrderId(created.getId());
+        quoteRequestRepository.save(quote);
+        return created;
     }
 
     @Transactional
@@ -186,6 +226,39 @@ public class QuoteService {
         customerRepository.save(customer);
         QuoteRequest saved = quoteRequestRepository.save(quote);
         return toResponse(Objects.requireNonNull(saved, "saved"));
+    }
+
+    @Transactional
+    public QuoteResponse duplicate(UUID id) {
+        QuoteRequest source = quoteRequestRepository.findById(Objects.requireNonNull(id, "id"))
+                .orElseThrow(() -> new IllegalArgumentException("Presupuesto no encontrado"));
+        DocumentSeries series = documentNumberService.nextSeries();
+        QuoteRequest copy = QuoteRequest.builder()
+                .quoteNumber(series.format(DocumentPrefix.PTO))
+                .seriesDate(series.date())
+                .seriesSequence(series.sequence())
+                .customer(source.getCustomer())
+                .tariffCode(source.getTariffCode())
+                .contactEmail(source.getContactEmail())
+                .contactWhatsapp(source.getContactWhatsapp())
+                .status(QuoteStatus.PENDIENTE_VALIDACION)
+                .validationMode(QuoteValidationMode.MANUAL)
+                .channel(source.getChannel())
+                .total(source.getTotal())
+                .createdAt(LocalDateTime.now())
+                .parentQuoteId(source.getParentQuoteId() == null ? source.getId() : source.getParentQuoteId())
+                .revision(source.getRevision() == null ? 2 : source.getRevision() + 1)
+                .build();
+        List<QuoteItem> copiedItems = source.getItems().stream().map(item -> QuoteItem.builder()
+                .quoteRequest(copy)
+                .doorModel(item.getDoorModel()).doorType(item.getDoorType()).productCategory(item.getProductCategory())
+                .colorCode(item.getColorCode()).primerRequired(item.getPrimerRequired()).openingVariant(item.getOpeningVariant())
+                .widthMm(item.getWidthMm()).heightMm(item.getHeightMm()).floorClearanceMm(item.getFloorClearanceMm())
+                .larguero(item.getLarguero()).marcoSuperior(item.getMarcoSuperior()).bisagras(item.getBisagras())
+                .porteroAutomatico(item.getPorteroAutomatico()).unidades(item.getUnidades()).m2(item.getM2())
+                .pricePerM2(item.getPricePerM2()).lineTotal(item.getLineTotal()).build()).toList();
+        copy.setItems(new java.util.ArrayList<>(copiedItems));
+        return toResponse(quoteRequestRepository.save(copy));
     }
 
     @Transactional(readOnly = true)
@@ -296,6 +369,9 @@ public class QuoteService {
                 .createdAt(quote.getCreatedAt())
                 .validatedAt(quote.getValidatedAt())
                 .sentAt(quote.getSentAt())
+                .convertedOrderId(quote.getConvertedOrderId())
+                .parentQuoteId(quote.getParentQuoteId())
+                .revision(quote.getRevision())
                 .items(quote.getItems().stream()
                         .map(item -> QuoteItemResponse.builder()
                                 .doorModel(item.getDoorModel())

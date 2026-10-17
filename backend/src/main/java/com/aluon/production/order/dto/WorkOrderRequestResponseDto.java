@@ -14,4 +14,6 @@ import java.util.UUID;
 public class WorkOrderRequestResponseDto {
     private UUID id;
     private String codigoOrden;
+    private UUID parentOrderId;
+    private Integer revision;
 }

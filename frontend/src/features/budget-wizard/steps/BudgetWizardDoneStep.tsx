@@ -5,6 +5,7 @@ import AppDialog from '../../../components/feedback/AppDialog';
 import { Customer360DocumentModal } from '../../customer-360/Customer360DocumentModal';
 import type { Customer360DocumentItem } from '../../customer-360/customer360Types';
 import { getQuoteWhatsappLink } from '../services/quoteWhatsappApi';
+import { convertQuoteToOrder, duplicateQuote } from '../services/quotesApi';
 
 type Props = {
   quote: QuoteResponse;
@@ -20,6 +21,10 @@ export const BudgetWizardDoneStep = ({ quote, submittedItems, postFinalizeAction
   const [targetEmail, setTargetEmail] = useState(quote.contactEmail || '');
   const [sentStatus, setSentStatus] = useState<string | null>(null);
   const [previewDocument, setPreviewDocument] = useState<Customer360DocumentItem | null>(null);
+  const [orderCode, setOrderCode] = useState<string | null>(null);
+  const [orderError, setOrderError] = useState('');
+  const [duplicateNumber, setDuplicateNumber] = useState<string | null>(null);
+  const [duplicateError, setDuplicateError] = useState('');
 
   const openPreviewModal = () => {
     setPreviewDocument({
@@ -63,6 +68,26 @@ export const BudgetWizardDoneStep = ({ quote, submittedItems, postFinalizeAction
     }
   };
 
+  const handleConvertToOrder = async () => {
+    setOrderError('');
+    try {
+      const order = await convertQuoteToOrder(quote.id);
+      setOrderCode(order.codigoOrden);
+    } catch (error) {
+      setOrderError(error instanceof Error ? error.message : 'No se pudo crear la orden de trabajo.');
+    }
+  };
+
+  const handleDuplicate = async () => {
+    setDuplicateError('');
+    try {
+      const duplicate = await duplicateQuote(quote.id);
+      setDuplicateNumber(duplicate.quoteNumber);
+    } catch (error) {
+      setDuplicateError(error instanceof Error ? error.message : 'No se pudo duplicar el presupuesto.');
+    }
+  };
+
   useEffect(() => {
     if (!postFinalizeAction) return;
 
@@ -97,6 +122,13 @@ export const BudgetWizardDoneStep = ({ quote, submittedItems, postFinalizeAction
         </div>
 
         <div className="h-px bg-outline-variant/20" />
+
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-blue-50 px-3 py-2 text-xs">
+          <span className="font-semibold text-blue-900">Edición/versionado: este presupuesto puede clonarse como nueva revisión.</span>
+          <button type="button" className="btn-ghost" onClick={() => void handleDuplicate()}>Duplicar presupuesto</button>
+        </div>
+        {duplicateNumber && <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800">Nueva revisión creada: {duplicateNumber}</div>}
+        {duplicateError && <div className="rounded-xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-800">{duplicateError}</div>}
 
         <div className="grid grid-cols-2 gap-4 text-xs">
           <div>
@@ -253,6 +285,15 @@ export const BudgetWizardDoneStep = ({ quote, submittedItems, postFinalizeAction
             Nuevo Flujo
           </button>
         </div>
+
+        {(quote.status === 'VALIDADO' || quote.status === 'ENVIADO') && !orderCode && (
+          <button type="button" onClick={handleConvertToOrder} className="w-full flex items-center justify-center gap-2 p-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider transition-colors shadow-sm">
+            <span className="material-symbols-outlined text-sm">assignment</span>
+            Convertir en orden de trabajo
+          </button>
+        )}
+        {orderCode && <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-center text-xs font-black text-green-800">Orden creada correctamente: {orderCode}</div>}
+        {orderError && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">{orderError}</div>}
       </div>
 
       {/* Email Modal overlay */}

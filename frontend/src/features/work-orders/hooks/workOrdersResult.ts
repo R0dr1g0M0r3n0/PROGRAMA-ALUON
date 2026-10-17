@@ -49,6 +49,8 @@ export const buildWorkOrdersResult = ({
 }: BuildWorkOrdersResultParams) => ({
   customers,
   requests: base.requests,
+  reloadRequests: base.reloadRequests,
+  isRefreshing: base.isRefreshing,
   customerId: base.customerId,
   modelId: base.modelId,
   modelReference: base.modelReference,

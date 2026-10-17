@@ -152,6 +152,8 @@ public class LocalYearBillingSeeder implements ApplicationRunner {
                         existing.setPersonaContacto(LocalSeedNames.contactPersonForSeed(email));
                         if (existing.getTelefono() == null || existing.getTelefono().isBlank())
                             existing.setTelefono(telefono);
+                        if (existing.getFormaPago() == null || existing.getFormaPago().isBlank())
+                            existing.setFormaPago("TRANSFERENCIA");
                         return customerService.save(existing);
                     }
                     return existing;
@@ -161,6 +163,7 @@ public class LocalYearBillingSeeder implements ApplicationRunner {
                         .personaContacto(LocalSeedNames.contactPersonForSeed(email))
                         .email(email)
                         .telefono(telefono)
+                        .formaPago("TRANSFERENCIA")
                         .active(true)
                         .build()));
     }

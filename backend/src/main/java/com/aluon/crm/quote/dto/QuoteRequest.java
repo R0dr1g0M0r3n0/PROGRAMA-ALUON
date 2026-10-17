@@ -80,6 +80,16 @@ public class QuoteRequest {
     @Column(name = "sent_at")
     private LocalDateTime sentAt;
 
+    @Column(name = "converted_order_id")
+    private UUID convertedOrderId;
+
+    @Column(name = "parent_quote_id")
+    private UUID parentQuoteId;
+
+    @Column(name = "revision", nullable = false)
+    @Builder.Default
+    private Integer revision = 1;
+
     @OneToMany(mappedBy = "quoteRequest", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<QuoteItem> items = new ArrayList<>();

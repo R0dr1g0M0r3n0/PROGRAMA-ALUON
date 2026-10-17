@@ -285,6 +285,8 @@ export const WorkOrdersView = ({ ctx, production }: { ctx: UseWorkOrdersResult; 
             activeTab={ctx.tab}
             onTabChange={handleTabChange}
             onOpenNewRequest={onOpenNewRequest}
+            onRefresh={() => { void ctx.reloadRequests(); }}
+            isRefreshing={ctx.isRefreshing}
           />
         );
       })()}

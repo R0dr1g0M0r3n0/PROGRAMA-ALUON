@@ -8,6 +8,8 @@ type WorkOrdersTabsProps = {
   activeTab: TabKey;
   onTabChange: (key: TabKey) => void;
   onOpenNewRequest: () => void;
+  onRefresh: () => void;
+  isRefreshing: boolean;
 };
 
 export const WorkOrdersTabs = ({
@@ -15,6 +17,8 @@ export const WorkOrdersTabs = ({
   activeTab,
   onTabChange,
   onOpenNewRequest,
+  onRefresh,
+  isRefreshing,
 }: WorkOrdersTabsProps) => (
   <div className="flex items-center gap-3 mb-6 overflow-x-auto">
     {steps.map((step, idx) => (
@@ -47,6 +51,16 @@ export const WorkOrdersTabs = ({
         )}
       </button>
     ))}
+    <button
+      type="button"
+      className="h-10 px-3 py-2 rounded-xl border text-xs font-black uppercase tracking-[0.08em] whitespace-nowrap"
+      style={{ borderColor: uiColors.border, background: '#ffffff', color: uiColors.textPrimary }}
+      onClick={onRefresh}
+      disabled={isRefreshing}
+      title="Actualizar órdenes"
+    >
+      {isRefreshing ? 'Actualizando…' : 'Actualizar'}
+    </button>
     <button className="btn-primary h-10 px-3 py-2" onClick={onOpenNewRequest}>
       <span className="text-base">🆕</span>
       Nueva orden

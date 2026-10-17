@@ -35,6 +35,7 @@ import com.aluon.production.order.dto.OrderAssignRequest;
 import com.aluon.production.order.dto.OrderCustomerAssignRequest;
 import com.aluon.production.order.dto.OrderCustomerBulkAssignRequest;
 import com.aluon.production.order.dto.OrderCustomerBulkAssignResponse;
+import com.aluon.crm.quote.model.QuoteItem;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +54,8 @@ public class OrderService {
                         .id(order.getId())
                         .customerId(order.getCustomer().getId())
                         .codigoOrden(order.getCodigoOrden())
+                        .parentOrderId(order.getParentOrderId())
+                        .revision(order.getRevision())
                         .estado(order.getEstado())
                         .workflowStep(order.getWorkflowStep())
                         .workflowStage(order.getWorkflowStage())
@@ -238,6 +241,7 @@ public class OrderService {
         Order order = Order.builder()
                 .customer(savedCustomer)
                 .codigoOrden(generateCodigoOrden())
+                .revision(1)
                 .modeloPuerta(request.getModeloPuerta().trim())
                 .anchoMm(request.getAnchoMm())
                 .altoMm(request.getAltoMm())
@@ -257,6 +261,57 @@ public class OrderService {
                 .id(savedOrder.getId())
                 .codigoOrden(savedOrder.getCodigoOrden())
                 .build();
+    }
+
+    @Transactional
+    public WorkOrderRequestResponseDto createFromQuote(Customer customer, String quoteNumber, QuoteItem item) {
+        if (customer == null || item == null) {
+            throw new IllegalArgumentException("El presupuesto debe tener cliente y líneas");
+        }
+        Order order = Order.builder()
+                .customer(customer)
+                .codigoOrden(generateCodigoOrden())
+                .revision(1)
+                .modeloPuerta(item.getDoorModel().name() + " · " + item.getDoorType().name())
+                .anchoMm(item.getWidthMm())
+                .altoMm(item.getHeightMm())
+                .notes("Generada desde presupuesto " + quoteNumber)
+                .color(normalize(item.getColorCode()))
+                .createdAt(LocalDateTime.now())
+                .estado(OrderStatus.PENDIENTE_MATERIAL)
+                .workflowStep(OrderWorkflowStep.INBOX)
+                .workflowStage(OrderWorkflowStep.INBOX.name())
+                .build();
+        Order saved = Objects.requireNonNull(orderRepository.save(order), "savedOrder");
+        return WorkOrderRequestResponseDto.builder().id(saved.getId()).codigoOrden(saved.getCodigoOrden()).build();
+    }
+
+    @Transactional
+    public WorkOrderRequestResponseDto duplicate(UUID id) {
+        Order source = orderRepository.findById(Objects.requireNonNull(id, "id"))
+                .orElseThrow(() -> new IllegalArgumentException("Orden de trabajo no encontrada"));
+        UUID rootId = source.getParentOrderId() == null ? source.getId() : source.getParentOrderId();
+        Order copy = Order.builder()
+                .customer(source.getCustomer())
+                .assignedUser(source.getAssignedUser())
+                .codigoOrden(generateCodigoOrden())
+                .parentOrderId(rootId)
+                .revision((source.getRevision() == null ? 1 : source.getRevision()) + 1)
+                .modeloPuerta(source.getModeloPuerta())
+                .anchoMm(source.getAnchoMm())
+                .altoMm(source.getAltoMm())
+                .notes(source.getNotes())
+                .color(source.getColor())
+                .installerName(source.getInstallerName())
+                .createdAt(LocalDateTime.now())
+                .estado(OrderStatus.PENDIENTE_MATERIAL)
+                .workflowStep(OrderWorkflowStep.INBOX)
+                .workflowStage(OrderWorkflowStep.INBOX.name())
+                .build();
+        Order saved = orderRepository.save(copy);
+        return WorkOrderRequestResponseDto.builder()
+                .id(saved.getId()).codigoOrden(saved.getCodigoOrden())
+                .parentOrderId(saved.getParentOrderId()).revision(saved.getRevision()).build();
     }
 
     @Transactional

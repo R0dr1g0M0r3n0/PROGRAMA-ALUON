@@ -9,7 +9,9 @@ import type {
 import { getCatalogChildrenByFamily, getCatalogFamilies } from './services/catalogApi';
 import {
   consumeBudgetWizardPrefillCustomer,
+  consumeBudgetWizardPrefillOrderConfiguration,
   peekBudgetWizardPrefillCustomer,
+  readBudgetWizardPrefillOrderConfiguration,
   readBudgetWizardPrefillCustomer,
 } from './services/budgetWizardPrefill';
 import { listCustomers, type CustomerResponse, type DeliveryAddressResponse } from './services/customersApi';
@@ -79,6 +81,7 @@ export const useBudgetWizard = () => {
     const prefill = initialPrefill ?? readBudgetWizardPrefillCustomer();
     return prefill ? toPrefillCustomerResponse(prefill) : null;
   });
+  const [orderPrefill] = useState(() => readBudgetWizardPrefillOrderConfiguration());
   const [customers, setCustomers] = useState<CustomerResponse[]>(() => (prefillCustomer ? [prefillCustomer] : []));
   const [selectedCustomerId, setSelectedCustomerId] = useState(() => prefillCustomer?.id ?? '');
   const [selectedDeliveryAddressId, setSelectedDeliveryAddressId] = useState(
@@ -201,6 +204,48 @@ export const useBudgetWizard = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!orderPrefill || !families.length) return;
+    const family = families.find(entry => entry.technicalModel.toUpperCase() === orderPrefill.model.toUpperCase());
+    if (!family) {
+      setError(`No se encontró el modelo ${orderPrefill.model} en el catálogo de presupuestos.`);
+      consumeBudgetWizardPrefillOrderConfiguration();
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    getCatalogChildrenByFamily(family.id)
+      .then(familyChildren => {
+        if (cancelled) return;
+        const expectedDoorType = orderPrefill.productType === 'PUERTA_PEATONAL' ? 'PEATONAL' : orderPrefill.productType;
+        const child = familyChildren.find(entry => entry.doorType === expectedDoorType);
+        setSelectedFamily(family);
+        setChildren(familyChildren);
+        if (!child) {
+          setError(`El modelo ${family.name} no tiene una variante ${expectedDoorType} disponible.`);
+          return;
+        }
+        setSelectedChild(child);
+        setWidthMm(orderPrefill.widthMm);
+        setHeightMm(orderPrefill.heightMm);
+        setFloorClearanceMm(orderPrefill.groundClearanceMm);
+        setPorteroAutomatico(orderPrefill.automaticDoorPhone);
+        if (isHexColor(orderPrefill.color)) setColorState(orderPrefill.color);
+        setStep('MEDIDAS');
+      })
+      .catch(err => {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'No se pudo cargar la configuración inicial.');
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+          consumeBudgetWizardPrefillOrderConfiguration();
+        }
+      });
+    return () => { cancelled = true; };
+  }, [families, orderPrefill, setStep]);
 
   const loadCustomers = async () => {
     setLoading(true);

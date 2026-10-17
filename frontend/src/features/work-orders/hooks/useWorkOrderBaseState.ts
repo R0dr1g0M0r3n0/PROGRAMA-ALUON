@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import { fetchWorkOrderRequests } from '../services/requestsApi';
 import type { TabKey, WorkOrderRequest } from '../models';
 
@@ -76,24 +76,26 @@ const reducer = (state: WorkOrderBaseState, action: WorkOrderBaseAction) => {
 
 export const useWorkOrderBaseState = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    let active = true;
+  const reloadRequests = useCallback(async () => {
+    setIsRefreshing(true);
     const load = async () => {
       try {
         const requests = await fetchWorkOrderRequests();
-        if (active) {
-          dispatch({ type: 'SET_REQUESTS', value: requests });
-        }
+        dispatch({ type: 'SET_REQUESTS', value: requests });
       } catch (error) {
         console.error('[work-orders] Failed to load requests', error);
+      } finally {
+        setIsRefreshing(false);
       }
     };
-    load();
-    return () => {
-      active = false;
-    };
+    await load();
   }, []);
+
+  useEffect(() => {
+    void reloadRequests();
+  }, [reloadRequests]);
 
   const setField = useCallback(
     <K extends keyof WorkOrderBaseState>(field: K, value: WorkOrderBaseState[K]) => {
@@ -130,6 +132,8 @@ export const useWorkOrderBaseState = () => {
 
   return {
     requests: state.requests,
+    reloadRequests,
+    isRefreshing,
     setRequests,
     customerId: state.customerId,
     setCustomerId,

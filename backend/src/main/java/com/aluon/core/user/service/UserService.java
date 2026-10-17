@@ -12,6 +12,7 @@ import com.aluon.core.user.dto.UpdateUserRequest;
 import com.aluon.core.user.model.User;
 import com.aluon.core.user.dto.UserDto;
 import com.aluon.core.user.repository.UserRepository;
+import com.aluon.core.audit.service.AdminAuditService;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +20,7 @@ import com.aluon.core.user.repository.UserRepository;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final AdminAuditService auditService;
 
     public List<UserDto> findAll() {
         return userRepository.findAll().stream()
@@ -47,11 +49,14 @@ public class UserService {
                 .telefono(request.getTelefono())
                 .horario(request.getHorario())
                 .tipoContrato(request.getTipoContrato())
+                .active(request.getActive() == null || request.getActive())
                 .foto(decodeBase64(request.getFotoBase64()))
                 .build();
 
         User saved = userRepository.save(user);
-        return toDto(Objects.requireNonNull(saved, "user"));
+        UserDto result = toDto(Objects.requireNonNull(saved, "user"));
+        auditService.record("CREATED", "USER", saved.getId().toString(), null, saved.getEmail() + "|" + saved.getRol());
+        return result;
     }
 
     public UserDto update(Long id, UpdateUserRequest request) {
@@ -94,13 +99,19 @@ public class UserService {
         if (request.getFotoBase64() != null) {
             user.setFoto(decodeBase64(request.getFotoBase64()));
         }
+        if (request.getActive() != null) user.setActive(request.getActive());
 
         User saved = userRepository.save(user);
-        return toDto(Objects.requireNonNull(saved, "user"));
+        UserDto result = toDto(Objects.requireNonNull(saved, "user"));
+        auditService.record("UPDATED", "USER", saved.getId().toString(), null, saved.getEmail() + "|" + saved.getRol() + "|active=" + saved.isActive());
+        return result;
     }
 
     public void deleteById(Long id) {
-        userRepository.deleteById(Objects.requireNonNull(id, "id"));
+        User user = getUserById(Objects.requireNonNull(id, "id"));
+        user.setActive(false);
+        userRepository.save(user);
+        auditService.record("DEACTIVATED", "USER", user.getId().toString(), user.getEmail(), "active=false");
     }
 
     private void validateCreate(CreateUserRequest request) {
@@ -137,6 +148,7 @@ public class UserService {
                 .horario(user.getHorario())
                 .tipoContrato(user.getTipoContrato())
                 .fotoBase64(encodeBase64(user.getFoto()))
+                .active(user.isActive())
                 .build();
     }
 

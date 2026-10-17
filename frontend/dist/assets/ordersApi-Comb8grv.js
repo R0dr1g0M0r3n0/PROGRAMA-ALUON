@@ -1,0 +1,1 @@
+var e=async()=>{let e=await fetch(`/api/orders/status`);if(!e.ok){let t=await e.text();throw Error(t||`No se pudieron cargar las órdenes de trabajo.`)}return await e.json()};export{e as t};

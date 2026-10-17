@@ -21,4 +21,5 @@ public class CreateUserRequest {
     private String horario;
     private ContractType tipoContrato;
     private String fotoBase64;
+    private Boolean active;
 }

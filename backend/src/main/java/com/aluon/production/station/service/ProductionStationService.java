@@ -3,6 +3,7 @@ package com.aluon.production.station.service;
 import com.aluon.core.user.model.User;
 import com.aluon.core.user.repository.UserRepository;
 import com.aluon.production.order.model.Order;
+import com.aluon.production.order.model.OrderStatus;
 import com.aluon.production.order.repository.OrderRepository;
 import com.aluon.production.station.dto.ProductionStationDto;
 import com.aluon.production.station.model.ProductionStation;
@@ -98,6 +99,7 @@ public class ProductionStationService {
             station.setNotes(notes);
         }
         stationRepository.save(station);
+        syncOrderOperationalStatus(orderId, targetStatus);
         log.info("Station {} advanced to {} for order {}", stationCode, targetStatus, orderId);
         return toDto(station);
     }
@@ -183,6 +185,29 @@ public class ProductionStationService {
             station.setOperatorName(operator.getNombre());
         } else if (operatorName != null && !operatorName.isBlank()) {
             station.setOperatorName(operatorName);
+        }
+    }
+
+    private void syncOrderOperationalStatus(UUID orderId, ProductionStationStatus targetStatus) {
+        Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new IllegalArgumentException("Orden no encontrada: " + orderId));
+
+        if (targetStatus == ProductionStationStatus.IN_PROGRESS) {
+            if (order.getEstado() != OrderStatus.LISTO_MONTAJE
+                && order.getEstado() != OrderStatus.INSTALADA
+                && order.getEstado() != OrderStatus.FACTURADA) {
+                order.setEstado(OrderStatus.EN_PRODUCCION);
+                orderRepository.save(order);
+            }
+            return;
+        }
+
+        boolean allCompleted = stationRepository.findByOrderIdOrderBySequenceOrder(orderId).stream()
+            .allMatch(station -> station.getStatus() == ProductionStationStatus.COMPLETED
+                || station.getStatus() == ProductionStationStatus.SKIPPED);
+        if (allCompleted && order.getEstado() != OrderStatus.INSTALADA && order.getEstado() != OrderStatus.FACTURADA) {
+            order.setEstado(OrderStatus.LISTO_MONTAJE);
+            orderRepository.save(order);
         }
     }
 

@@ -2,21 +2,18 @@ package com.aluon.production.cutlist.model;
 
 import com.aluon.production.cutlist.dto.CutlistRequestDto;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
 public class CutlistCalculatorTempTest {
-
-    @Autowired
-    private CutlistCalculator calculator;
 
     @Test
     public void test() {
+        CutlistLineFactory lineFactory = new CutlistLineFactory();
+        CutlistModelRules modelRules = new CutlistModelRules(lineFactory, new BottomFrameMiterCalculator());
+        CutlistCalculator calculator = new CutlistCalculator(List.of(new AbatibleDosCutlistGenerator(
+                lineFactory, modelRules, new UnevennessCalculator(), new LamaCutlistAppender(lineFactory, modelRules))));
         CutlistRequestDto req = new CutlistRequestDto();
         req.setDoorType(DoorType.ABATIBLE_DOS);
         req.setModel(DoorModel.PREMIUM);

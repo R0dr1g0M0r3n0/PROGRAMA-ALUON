@@ -9,12 +9,12 @@ export default {
       fontFamily: {
         sans:    ['Fira Sans', 'system-ui', 'sans-serif'],
         mono:    ['Fira Code', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace'],
-        headline: ["Nexa"],
-        body: ["Sora"],
-        label: ["Sora"],
-        inter: ["Inter"],
-        space: ["Nexa"],
-        sora: ["Sora"],
+        headline: ['Fira Sans', 'system-ui', 'sans-serif'],
+        body: ['Fira Sans', 'system-ui', 'sans-serif'],
+        label: ['Fira Sans', 'system-ui', 'sans-serif'],
+        inter: ['Fira Sans', 'system-ui', 'sans-serif'],
+        space: ['Fira Sans', 'system-ui', 'sans-serif'],
+        sora: ['Fira Sans', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand:     'var(--accent)',

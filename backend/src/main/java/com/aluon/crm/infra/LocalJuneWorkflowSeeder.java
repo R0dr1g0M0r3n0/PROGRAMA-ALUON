@@ -80,6 +80,7 @@ public class LocalJuneWorkflowSeeder implements ApplicationRunner {
                 .personaContacto(LocalSeedNames.contactPersonForSeed(SEED_MARKER_EMAIL))
                 .email(SEED_MARKER_EMAIL)
                 .telefono("600 000 001")
+                .formaPago("TRANSFERENCIA")
                 .active(true)
                 .build());
 
@@ -90,6 +91,7 @@ public class LocalJuneWorkflowSeeder implements ApplicationRunner {
                 .personaContacto(LocalSeedNames.contactPersonForSeed(emailB))
                 .email("demo.b@aluon.local")
                 .telefono("600 000 002")
+                .formaPago("TRANSFERENCIA")
                 .active(true)
                 .build());
 

@@ -6,6 +6,7 @@ export type ModuleKey =
   | 'gestion-documentos'
   | 'simulacion-puertas'
   | 'presupuestos'
+  | 'configurador'
   | 'inscripciones'
   | 'ordenes'
   | 'despiece'
@@ -36,7 +37,7 @@ const NavItem = ({ label, active, icon, onClick }: NavItemProps) => (
 
 const Sidebar = ({ activeModule, onSelect, onNewOrder, isOpen = true, onHoverChange }: SidebarProps) => (
   <aside
-    className={`min-h-screen flex flex-col flex-shrink-0 overflow-hidden transition-[width] duration-300 ${isOpen ? 'w-64' : 'w-0'}`}
+    className={`app-sidebar min-h-screen flex flex-col flex-shrink-0 overflow-hidden transition-[width] duration-300 ${isOpen ? 'is-open w-64' : 'is-closed w-0'}`}
     style={{ background: 'linear-gradient(180deg,#0d1117 0%,#161b22 100%)', boxShadow: '4px 0 24px rgba(0,0,0,0.22)' }}
     onMouseEnter={() => onHoverChange?.(true)}
     onMouseLeave={() => onHoverChange?.(false)}
@@ -78,6 +79,11 @@ const Sidebar = ({ activeModule, onSelect, onNewOrder, isOpen = true, onHoverCha
         <NavItem label="Presupuestos" active={activeModule === 'presupuestos'} onClick={() => onSelect('presupuestos')} icon={
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m-6 4h6m-6 4h6M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+        } />
+        <NavItem label="Configurador" active={activeModule === 'configurador'} onClick={() => onSelect('configurador')} icon={
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a2 2 0 012-2h12a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm4 2h8M8 11h8M8 15h5" />
           </svg>
         } />
         <NavItem label="Inscripciones" active={activeModule === 'inscripciones'} onClick={() => onSelect('inscripciones')} icon={

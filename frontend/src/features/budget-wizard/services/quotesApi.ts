@@ -66,3 +66,17 @@ export const sendQuote = async (id: string, channel: 'EMAIL' | 'WHATSAPP' | 'BOT
   return (await response.json()) as QuoteResponse;
 };
 
+export type WorkOrderCreated = { id: string; codigoOrden: string };
+
+export const convertQuoteToOrder = async (id: string): Promise<WorkOrderCreated> => {
+  const response = await fetch(`/api/quotes/${encodeURIComponent(id)}/convert-to-order`, { method: 'POST' });
+  if (!response.ok) throw new Error(await readTextError(response));
+  return response.json() as Promise<WorkOrderCreated>;
+};
+
+export const duplicateQuote = async (id: string): Promise<QuoteResponse> => {
+  const response = await fetch(`/api/quotes/${encodeURIComponent(id)}/duplicate`, { method: 'POST' });
+  if (!response.ok) throw new Error(await readTextError(response));
+  return response.json() as Promise<QuoteResponse>;
+};
+

@@ -57,4 +57,8 @@ public class User {
     @JdbcTypeCode(SqlTypes.BINARY)
     @Column(columnDefinition = "bytea")
     private byte[] foto;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean active = true;
 }

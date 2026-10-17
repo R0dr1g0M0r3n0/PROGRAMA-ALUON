@@ -1,0 +1,13 @@
+import { staffAuthHeaders } from '../../services/staffAuthApi';
+import type { AdminDistributor, AdminDistributorForm, AdminOrderConfiguration } from './AdminManagement.types';
+
+const readError = async (response: Response) => (await response.text().catch(() => '')) || 'Error inesperado';
+
+export const listDistributors = async () => { const response = await fetch('/api/admin/distributors', { headers: staffAuthHeaders() }); if (!response.ok) throw new Error(await readError(response)); return response.json() as Promise<AdminDistributor[]>; };
+export const saveDistributor = async (form: AdminDistributorForm, id?: string) => { const response = await fetch(id ? `/api/admin/distributors/${id}` : '/api/admin/distributors', { method: id ? 'PUT' : 'POST', headers: staffAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(form) }); if (!response.ok) throw new Error(await readError(response)); return response.json() as Promise<AdminDistributor>; };
+export const deactivateDistributor = async (id: string) => { const response = await fetch(`/api/admin/distributors/${id}`, { method: 'DELETE', headers: staffAuthHeaders() }); if (!response.ok) throw new Error(await readError(response)); };
+
+export const listAdminOrders = async (filters: { query?: string; status?: string; productType?: string } = {}) => { const params = new URLSearchParams(); Object.entries(filters).forEach(([key, value]) => value && params.set(key, value)); const response = await fetch(`/api/admin/order-configurations?${params}`, { headers: staffAuthHeaders() }); if (!response.ok) throw new Error(await readError(response)); return response.json() as Promise<AdminOrderConfiguration[]>; };
+export const changeAdminOrderStatus = async (id: string, status: string, reason?: string) => { const params = new URLSearchParams({ value: status }); if (reason) params.set('reason', reason); const response = await fetch(`/api/admin/order-configurations/${id}/status?${params}`, { method: 'PATCH', headers: staffAuthHeaders() }); if (!response.ok) throw new Error(await readError(response)); return response.json(); };
+export const duplicateAdminOrder = async (id: string) => { const response = await fetch(`/api/admin/order-configurations/${id}/duplicate`, { method: 'POST', headers: staffAuthHeaders() }); if (!response.ok) throw new Error(await readError(response)); return response.json(); };
+export const exportAdminOrders = (filters: { query?: string; status?: string; productType?: string } = {}) => { const params = new URLSearchParams(); Object.entries(filters).forEach(([key, value]) => value && params.set(key, value)); return `/api/admin/order-configurations/export?${params}`; };

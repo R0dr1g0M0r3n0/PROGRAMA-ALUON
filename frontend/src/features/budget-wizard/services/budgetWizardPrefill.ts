@@ -1,6 +1,7 @@
 import { normalizeCustomerTariffCode } from '../../../components/customer-modal/customerTariffOptions';
 
 const STORAGE_KEY = 'aluon.budget-wizard.prefill.v1';
+const ORDER_STORAGE_KEY = 'aluon.budget-wizard.order-prefill.v1';
 const HISTORY_STATE_KEY = 'budgetWizardPrefillCustomer';
 
 type PrefillState = {
@@ -20,6 +21,18 @@ type PrefillState = {
     telefono: string;
     contacto: string;
   }>;
+};
+
+export type BudgetOrderPrefill = {
+  productType: string;
+  model: string;
+  color: string;
+  widthMm: number;
+  heightMm: number;
+  groundClearanceMm: number;
+  useMode: string;
+  electricStrike: boolean;
+  automaticDoorPhone: boolean;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -167,6 +180,39 @@ export const clearBudgetWizardPrefillCustomer = (): void => {
     window.history.replaceState(nextState, '', `${window.location.pathname}${window.location.hash}`);
   }
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(ORDER_STORAGE_KEY);
+};
+
+export const setBudgetWizardPrefillOrderConfiguration = (order: BudgetOrderPrefill): void => {
+  localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(order));
+};
+
+export const readBudgetWizardPrefillOrderConfiguration = (): BudgetOrderPrefill | null => {
+  const raw = localStorage.getItem(ORDER_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as Partial<BudgetOrderPrefill>;
+    if (typeof value.productType !== 'string' || typeof value.model !== 'string') return null;
+    return {
+      productType: value.productType,
+      model: value.model,
+      color: typeof value.color === 'string' ? value.color : '',
+      widthMm: Number(value.widthMm) || 0,
+      heightMm: Number(value.heightMm) || 0,
+      groundClearanceMm: Number(value.groundClearanceMm) || 0,
+      useMode: typeof value.useMode === 'string' ? value.useMode : 'MANUAL',
+      electricStrike: Boolean(value.electricStrike),
+      automaticDoorPhone: Boolean(value.automaticDoorPhone),
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const consumeBudgetWizardPrefillOrderConfiguration = (): BudgetOrderPrefill | null => {
+  const value = readBudgetWizardPrefillOrderConfiguration();
+  localStorage.removeItem(ORDER_STORAGE_KEY);
+  return value;
 };
 
 export const readBudgetWizardPrefillCustomer = (): PrefillState | null => {

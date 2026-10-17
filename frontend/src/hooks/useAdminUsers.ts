@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { staffAuthHeaders } from '../services/staffAuthApi';
 
 export type Role =
   | 'SUPERADMIN'
@@ -42,20 +43,20 @@ export const useAdminUsers = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchRoles = async () => {
-    const response = await fetch('/api/admin/roles');
+    const response = await fetch('/api/admin/roles', { headers: staffAuthHeaders() });
     const data = await response.json();
     setRoles(Array.isArray(data) ? (data as Role[]) : []);
   };
 
   const fetchContractTypes = async () => {
-    const response = await fetch('/api/admin/contract-types');
+    const response = await fetch('/api/admin/contract-types', { headers: staffAuthHeaders() });
     const data = await response.json();
     setContractTypes(Array.isArray(data) ? (data as ContractType[]) : []);
   };
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users');
+      const response = await fetch('/api/admin/users', { headers: staffAuthHeaders() });
       const data = await response.json();
       setUsers(Array.isArray(data) ? data : []);
     } finally {
@@ -81,7 +82,7 @@ export const useAdminUsers = () => {
 
     const response = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: staffAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(payload),
     });
 
@@ -91,7 +92,7 @@ export const useAdminUsers = () => {
   };
 
   const deleteUser = async (id: number) => {
-    const response = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+    const response = await fetch(`/api/admin/users/${id}`, { method: 'DELETE', headers: staffAuthHeaders() });
     if (response.ok) {
       fetchUsers();
     }

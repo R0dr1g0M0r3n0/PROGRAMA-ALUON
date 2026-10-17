@@ -1,12 +1,20 @@
 import { useState } from 'react';
 import { AdminUsersPanel } from './AdminUsersPanel';
 import { ProductCatalogManagement } from './ProductCatalogManagement';
+import { CatalogRulesManagement } from './CatalogRulesManagement';
+import { CatalogOptionsManagement } from './CatalogOptionsManagement';
 import SocialMediaManagement from './SocialMediaManagement';
+import { DistributorsManagement } from './DistributorsManagement';
+import { OrdersManagement } from './OrdersManagement';
 import type { AdminManagementTab } from './AdminManagement.types';
 
 const tabs: Array<{ id: AdminManagementTab; label: string; description: string }> = [
   { id: 'USERS', label: 'Usuarios', description: 'Alta, edición y eliminación de empleados.' },
   { id: 'PRODUCT_FAMILIES', label: 'Familias de producto', description: 'Catálogo visual para presupuestos.' },
+  { id: 'CATALOG_RULES', label: 'Reglas y tarifas', description: 'Límites, compatibilidades y precios configurables.' },
+  { id: 'CATALOG_OPTIONS', label: 'Opciones de catálogo', description: 'Colores, acabados, herrajes y condiciones comerciales.' },
+  { id: 'DISTRIBUTORS', label: 'Distribuidores', description: 'Datos, estado y usuarios asociados.' },
+  { id: 'ORDERS', label: 'Pedidos', description: 'Revisión, estados, duplicado y exportación.' },
   { id: 'SOCIAL_MEDIA', label: 'RRSS', description: 'Publicaciones internas y configuración por red.' },
 ];
 
@@ -55,7 +63,7 @@ const AdminManagement = () => {
       </div>
 
       <div className="flex-1 min-h-0">
-        {activeTab === 'USERS' ? <AdminUsersPanel /> : activeTab === 'PRODUCT_FAMILIES' ? <ProductCatalogManagement /> : <SocialMediaManagement />}
+        {activeTab === 'USERS' ? <AdminUsersPanel /> : activeTab === 'PRODUCT_FAMILIES' ? <ProductCatalogManagement /> : activeTab === 'CATALOG_OPTIONS' ? <CatalogOptionsManagement /> : activeTab === 'CATALOG_RULES' ? <CatalogRulesManagement /> : activeTab === 'DISTRIBUTORS' ? <DistributorsManagement /> : activeTab === 'ORDERS' ? <OrdersManagement /> : <SocialMediaManagement />}
       </div>
     </div>
   );

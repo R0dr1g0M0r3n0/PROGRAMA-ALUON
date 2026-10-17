@@ -19,6 +19,8 @@ public class OrderStatusDto {
     private UUID id;
     private UUID customerId;
     private String codigoOrden;
+    private UUID parentOrderId;
+    private Integer revision;
     private OrderStatus estado;
     private OrderWorkflowStep workflowStep;
     private String workflowStage;

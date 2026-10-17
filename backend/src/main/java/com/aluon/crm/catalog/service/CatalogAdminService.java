@@ -1,5 +1,6 @@
 package com.aluon.crm.catalog.service;
 
+import com.aluon.core.audit.service.AdminAuditService;
 import com.aluon.crm.catalog.dto.CatalogAdminChildResponse;
 import com.aluon.crm.catalog.dto.CatalogAdminFamilyResponse;
 import com.aluon.crm.catalog.dto.CatalogChildUpsertRequest;
@@ -28,6 +29,7 @@ public class CatalogAdminService {
     private final CatalogDoorProductRepository doorProductRepository;
     private final CatalogProductVariantRepository variantRepository;
     private final CurrentTenantIdentifierResolver<UUID> tenantResolver;
+    private final AdminAuditService auditService;
 
     @Transactional(readOnly = true)
     public List<CatalogAdminFamilyResponse> listFamilies() {
@@ -49,7 +51,9 @@ public class CatalogAdminService {
                 .orden(request.sortOrder())
                 .activo(request.active())
                 .build();
-        return toAdminFamilyResponse(modelRepository.save(family));
+        CatalogProductModel saved = modelRepository.save(family);
+        auditService.record("CREATED", "CATALOG_MODEL", saved.getId().toString(), null, saved.getModelo() + "|" + saved.getNombre());
+        return toAdminFamilyResponse(saved);
     }
 
     @Transactional
@@ -62,12 +66,17 @@ public class CatalogAdminService {
         family.setImagenModelo(cleanNullable(request.imageUrl()));
         family.setOrden(request.sortOrder());
         family.setActivo(request.active());
-        return toAdminFamilyResponse(modelRepository.save(family));
+        CatalogProductModel saved = modelRepository.save(family);
+        auditService.record("UPDATED", "CATALOG_MODEL", saved.getId().toString(), null, saved.getModelo() + "|" + saved.getNombre());
+        return toAdminFamilyResponse(saved);
     }
 
     @Transactional
     public void deleteFamily(UUID familyId) {
-        modelRepository.delete(requireFamily(familyId));
+        CatalogProductModel family = requireFamily(familyId);
+        family.setActivo(false);
+        modelRepository.save(family);
+        auditService.record("DEACTIVATED", "CATALOG_MODEL", family.getId().toString(), family.getModelo(), "active=false");
     }
 
     @Transactional
@@ -86,7 +95,9 @@ public class CatalogAdminService {
                 .orden(request.sortOrder())
                 .activo(request.active())
                 .build();
-        return toAdminChildResponse(variantRepository.save(child));
+        CatalogProductVariant saved = variantRepository.save(child);
+        auditService.record("CREATED", "CATALOG_VARIANT", saved.getId().toString(), null, saved.getNombre());
+        return toAdminChildResponse(saved);
     }
 
     @Transactional
@@ -107,6 +118,7 @@ public class CatalogAdminService {
         child.setActivo(request.active());
 
         CatalogAdminChildResponse response = toAdminChildResponse(variantRepository.save(child));
+        auditService.record("UPDATED", "CATALOG_VARIANT", child.getId().toString(), null, child.getNombre());
         deleteDoorProductIfUnused(previousDoorProduct);
         return response;
     }
@@ -115,8 +127,9 @@ public class CatalogAdminService {
     public void deleteChild(UUID childId) {
         CatalogProductVariant child = requireChild(childId);
         CatalogDoorProduct doorProduct = child.getPuerta();
-        variantRepository.delete(child);
-        deleteDoorProductIfUnused(doorProduct);
+        child.setActivo(false);
+        variantRepository.save(child);
+        auditService.record("DEACTIVATED", "CATALOG_VARIANT", child.getId().toString(), child.getNombre(), "active=false");
     }
 
     private CatalogAdminFamilyResponse toAdminFamilyResponse(CatalogProductModel family) {

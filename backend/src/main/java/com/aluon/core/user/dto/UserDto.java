@@ -22,4 +22,5 @@ public class UserDto {
     private String horario;
     private ContractType tipoContrato;
     private String fotoBase64;
+    private boolean active;
 }

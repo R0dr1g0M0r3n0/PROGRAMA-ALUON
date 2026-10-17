@@ -3,6 +3,7 @@ import {
   buildBudgetWizardPrefillCustomer,
   clearBudgetWizardPrefillCustomer,
   setBudgetWizardPrefillCustomer,
+  setBudgetWizardPrefillOrderConfiguration,
 } from './budgetWizardPrefill';
 
 const LAUNCH_EVENT_NAME = 'aluon:budget-wizard-launch';
@@ -72,11 +73,12 @@ export const openBudgetWizardForCustomer = (customer: {
     telefono?: string;
     contacto?: string;
   }>;
-}): void => {
+}, orderConfiguration?: Parameters<typeof setBudgetWizardPrefillOrderConfiguration>[0]): void => {
   const prefill = buildBudgetWizardPrefillCustomer(customer);
   if (!prefill) return;
 
   setBudgetWizardPrefillCustomer(customer);
+  if (orderConfiguration) setBudgetWizardPrefillOrderConfiguration(orderConfiguration);
 
   if (typeof window !== 'undefined') {
     const currentState = isHistoryStateRecord(window.history.state) ? window.history.state : {};

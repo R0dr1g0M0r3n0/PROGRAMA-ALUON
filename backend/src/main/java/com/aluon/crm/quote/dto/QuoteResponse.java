@@ -41,5 +41,8 @@ public class QuoteResponse {
     private LocalDateTime createdAt;
     private LocalDateTime validatedAt;
     private LocalDateTime sentAt;
+    private UUID convertedOrderId;
+    private UUID parentQuoteId;
+    private Integer revision;
     private List<QuoteItemResponse> items;
 }

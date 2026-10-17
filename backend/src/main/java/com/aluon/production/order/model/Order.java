@@ -40,6 +40,13 @@ public class Order {
     @Column(name = "codigo_orden", nullable = false, unique = true)
     private String codigoOrden;
 
+    @Column(name = "parent_order_id")
+    private UUID parentOrderId;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer revision = 1;
+
     @Column(name = "modelo_puerta", nullable = false)
     private String modeloPuerta;
 

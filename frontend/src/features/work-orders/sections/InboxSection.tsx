@@ -7,6 +7,7 @@ import ErrorDialog from '../../../components/feedback/ErrorDialog';
 import { OriginalRequestDialog } from '../components/OriginalRequestDialog';
 import type { CatalogModelOption } from '../utils/catalogModels';
 import { resolveCatalogModelOption } from '../utils/catalogModels';
+import { duplicateWorkOrder } from '../services/requestsApi';
 
 const statusStyles: Record<string, { background: string; color: string; border: string }> = {
   INBOX: { background: 'var(--accent-soft-2)', color: uiColors.accent, border: 'var(--accent-border)' },
@@ -53,6 +54,8 @@ export const InboxSection = ({
   const [isDeleting, setIsDeleting] = useState(false);
   const [showOriginalRequest, setShowOriginalRequest] = useState(false);
   const [originalRequest, setOriginalRequest] = useState<WorkOrderRequest | null>(null);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [duplicateMessage, setDuplicateMessage] = useState<string | null>(null);
 
   const handleAskDelete = useCallback((request: WorkOrderRequest) => {
     setConfirmDelete(request);
@@ -82,6 +85,19 @@ export const InboxSection = ({
   const handleShowOriginal = useCallback((request: WorkOrderRequest) => {
     setOriginalRequest(request);
     setShowOriginalRequest(true);
+  }, []);
+
+  const handleDuplicate = useCallback(async (request: WorkOrderRequest) => {
+    setDuplicatingId(request.orderId);
+    setDuplicateMessage(null);
+    try {
+      const duplicated = await duplicateWorkOrder(request.orderId);
+      setDuplicateMessage(`Orden duplicada: ${duplicated.codigoOrden} (revisión ${duplicated.revision}). Actualiza la bandeja para verla.`);
+    } catch (error) {
+      setDuplicateMessage(error instanceof Error ? error.message : 'No se pudo duplicar la orden.');
+    } finally {
+      setDuplicatingId(null);
+    }
   }, []);
 
   const filteredRequests = useMemo(() => {
@@ -259,6 +275,17 @@ export const InboxSection = ({
                     <button
                       type="button"
                       className="w-7 h-7 rounded-lg border transition-colors inline-flex items-center justify-center"
+                      style={{ color: uiColors.textPrimary, borderColor: uiColors.border, background: '#f9fafb' }}
+                      disabled={duplicatingId === req.orderId}
+                      onClick={event => { event.stopPropagation(); void handleDuplicate(req); }}
+                      aria-label="Duplicar orden"
+                      title="Duplicar / nueva revisión"
+                    >
+                      <span className="text-[11px] font-black">+1</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="w-7 h-7 rounded-lg border transition-colors inline-flex items-center justify-center"
                       style={{
                         color: uiColors.textPrimary,
                         borderColor: uiColors.border,
@@ -301,6 +328,9 @@ export const InboxSection = ({
           </div>
         </div>
       </div>
+      {duplicateMessage && (
+        <p className="text-xs mt-3" style={{ color: uiColors.accent }}>{duplicateMessage}</p>
+      )}
       {selectedRequestId && !customerId && (
         <p className="text-xs mt-3" style={{ color: uiColors.danger }}>
           No se encontró el cliente en CRM. Selecciónalo manualmente en la solicitud.

@@ -1,18 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import Sidebar, { ModuleKey } from './components/Sidebar';
-import CustomerManagement from './features/customer-management/CustomerManagement';
-import Dashboard from './features/dashboard/Dashboard';
-import AdminManagement from './features/admin-management/AdminManagement';
-import WorkOrders from './features/work-orders/WorkOrders';
-import RegistrationRequests from './features/registration-requests/RegistrationRequests';
-import Settings from './features/settings/Settings';
-import Cutlist from './features/cutlist/Cutlist';
-import { BudgetWizard } from './features/budget-wizard/BudgetWizard';
 import { JiraFloatingButton } from './features/jira-shortcut/JiraFloatingButton';
-import { DoorVisualSimulation } from './features/door-visual-simulation/DoorVisualSimulation';
-import { ProjectManagement } from './features/project-management/ProjectManagement';
 import { onNavigateToDocument, onNavigateToModule } from './services/moduleNavigation';
 import { onBudgetWizardLaunch, startBudgetWizard } from './features/budget-wizard/services/budgetWizardLaunch';
+import { loadCurrentStaff, StaffUser } from './services/staffAuthApi';
+
+const CustomerManagement = lazy(() => import('./features/customer-management/CustomerManagement'));
+const Dashboard = lazy(() => import('./features/dashboard/Dashboard'));
+const AdminManagement = lazy(() => import('./features/admin-management/AdminManagement'));
+const WorkOrders = lazy(() => import('./features/work-orders/WorkOrders'));
+const RegistrationRequests = lazy(() => import('./features/registration-requests/RegistrationRequests'));
+const Settings = lazy(() => import('./features/settings/Settings'));
+const Cutlist = lazy(() => import('./features/cutlist/Cutlist'));
+const BudgetWizard = lazy(() => import('./features/budget-wizard/BudgetWizard').then(module => ({ default: module.BudgetWizard })));
+const DoorVisualSimulation = lazy(() => import('./features/door-visual-simulation/DoorVisualSimulation').then(module => ({ default: module.DoorVisualSimulation })));
+const ProjectManagement = lazy(() => import('./features/project-management/ProjectManagement').then(module => ({ default: module.ProjectManagement })));
+const OrderConfigurator = lazy(() => import('./features/order-configurator/OrderConfigurator'));
+const StaffLoginPanel = lazy(() => import('./components/StaffLoginPanel'));
 
 const App = () => {
   const [activeModule, setActiveModule] = useState<ModuleKey>('clientes');
@@ -20,6 +24,12 @@ const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [budgetWizardSessionKey, setBudgetWizardSessionKey] = useState(0);
   const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
+  const [staffUser, setStaffUser] = useState<StaffUser | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+
+  useEffect(() => {
+    loadCurrentStaff().then(setStaffUser).catch(() => setStaffUser(null));
+  }, []);
 
   useEffect(() => onNavigateToModule(setActiveModule), []);
   useEffect(() => onNavigateToDocument((documentId) => {
@@ -51,6 +61,8 @@ const App = () => {
         return 'Despiece';
       case 'presupuestos':
         return 'Presupuestos';
+      case 'configurador':
+        return 'Configurador de pedidos';
       case 'simulacion-puertas':
         return 'Simulación Visual de Puertas';
       case 'inscripciones':
@@ -66,7 +78,7 @@ const App = () => {
   }, [activeModule]);
 
   return (
-    <div className="flex h-screen overflow-hidden font-sans" style={{ backgroundColor: '#f8f9fb' }}>
+    <div className="aluon-app flex h-screen overflow-hidden" style={{ backgroundColor: '#f8f9fb' }}>
       <Sidebar
         activeModule={activeModule}
         onSelect={handleSelectModule}
@@ -136,6 +148,7 @@ const App = () => {
           <div className="w-px h-6" style={{ backgroundColor: '#e8eaed' }} />
 
           <button className="flex items-center gap-2.5 px-2 py-1 rounded-xl transition-all duration-200 group"
+            onClick={() => setLoginOpen(true)}
             style={{ color: '#0d1117' }}
             onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#f8f9fb')}
             onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -144,11 +157,11 @@ const App = () => {
               className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-black"
               style={{ backgroundColor: 'var(--accent)', boxShadow: '0 2px 8px var(--accent-shadow-soft)' }}
             >
-              RA
+              {staffUser ? `${staffUser.nombre?.[0] || ''}${staffUser.apellidos?.[0] || ''}` : 'LO'}
             </div>
             <div className="hidden sm:block text-left">
-              <div className="text-xs font-black uppercase leading-tight" style={{ color: '#0d1117' }}>Pedro Aluon</div>
-              <div className="text-xs font-semibold uppercase" style={{ color: '#8b949e', fontSize: 10 }}>SuperAdmin</div>
+              <div className="text-xs font-black uppercase leading-tight" style={{ color: '#0d1117' }}>{staffUser ? `${staffUser.nombre} ${staffUser.apellidos}` : 'Modo local'}</div>
+              <div className="text-xs font-semibold uppercase" style={{ color: '#8b949e', fontSize: 10 }}>{staffUser?.role || 'Sin sesión'}</div>
             </div>
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#8b949e' }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
@@ -160,6 +173,7 @@ const App = () => {
         {/* Content */}
         <main className="relative flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="w-full p-3 md:p-4 animate-fade-up flex-1 flex flex-col min-h-0 overflow-y-auto overflow-x-hidden">
+            <Suspense fallback={<div className="flex min-h-48 items-center justify-center text-sm font-semibold text-slate-500">Cargando módulo…</div>}>
             {activeModule === 'clientes' && <CustomerManagement />}
             {activeModule === 'gestion-documentos' && (
               <ProjectManagement
@@ -169,6 +183,7 @@ const App = () => {
             )}
             {activeModule === 'simulacion-puertas' && <DoorVisualSimulation />}
             {activeModule === 'presupuestos' && <BudgetWizard key={budgetWizardSessionKey} />}
+            {activeModule === 'configurador' && <OrderConfigurator />}
             {activeModule === 'inscripciones' && <RegistrationRequests />}
             {activeModule === 'ordenes' && (
               <WorkOrders
@@ -180,11 +195,21 @@ const App = () => {
             {activeModule === 'dashboard' && <Dashboard />}
             {activeModule === 'ajustes' && <Settings />}
             {activeModule === 'administracion' && <AdminManagement />}
+            </Suspense>
           </div>
         </main>
 
         <JiraFloatingButton moduleKey={activeModule} moduleLabel={breadcrumb} />
       </div>
+
+      {loginOpen && (
+        <Suspense fallback={null}>
+          <StaffLoginPanel
+            onAuthenticated={setStaffUser}
+            onClose={() => setLoginOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

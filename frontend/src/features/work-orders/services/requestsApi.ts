@@ -1,9 +1,12 @@
 import type { WorkOrderRequest } from '../models';
+import { staffAuthHeaders } from '../../../services/staffAuthApi';
 
 type OrderStatusApi = {
   id: string;
   customerId?: string | null;
   codigoOrden: string;
+  parentOrderId?: string | null;
+  revision?: number | null;
   estado: string;
   workflowStep: string;
   workflowStage?: string;
@@ -154,6 +157,18 @@ export const deleteWorkOrderRequest = async (orderId: string): Promise<void> => 
     const message = await response.text();
     throw new Error(message || 'No se pudo eliminar la solicitud.');
   }
+};
+
+export const duplicateWorkOrder = async (orderId: string): Promise<{ id: string; codigoOrden: string; revision: number }> => {
+  const response = await fetch(`/api/orders/${orderId}/duplicate`, {
+    method: 'POST',
+    headers: staffAuthHeaders(),
+  });
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || 'No se pudo duplicar la orden.');
+  }
+  return (await response.json()) as { id: string; codigoOrden: string; revision: number };
 };
 
 export const updateWorkOrderWorkflowStep = async (

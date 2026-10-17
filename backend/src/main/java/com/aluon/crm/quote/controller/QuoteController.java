@@ -11,6 +11,7 @@ import com.aluon.crm.quote.dto.QuoteResponse;
 import com.aluon.crm.quote.dto.QuoteSendRequest;
 import com.aluon.crm.quote.dto.QuoteUpdateRequest;
 import com.aluon.crm.quote.service.QuoteService;
+import com.aluon.production.order.dto.WorkOrderRequestResponseDto;
 
 
 @RestController
@@ -35,6 +36,11 @@ public class QuoteController {
         return ResponseEntity.ok(quoteService.send(id, request));
     }
 
+    @PostMapping("/{id}/convert-to-order")
+    public ResponseEntity<WorkOrderRequestResponseDto> convertToOrder(@PathVariable UUID id) {
+        return ResponseEntity.ok(quoteService.convertToOrder(id));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<QuoteResponse> getById(@PathVariable UUID id) {
         return ResponseEntity.ok(quoteService.getById(id));
@@ -43,6 +49,11 @@ public class QuoteController {
     @PatchMapping("/{id}")
     public ResponseEntity<QuoteResponse> update(@PathVariable UUID id, @RequestBody QuoteUpdateRequest request) {
         return ResponseEntity.ok(quoteService.update(id, request));
+    }
+
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<QuoteResponse> duplicate(@PathVariable UUID id) {
+        return ResponseEntity.ok(quoteService.duplicate(id));
     }
 
     @GetMapping("/{id}/lifecycle-numbers")

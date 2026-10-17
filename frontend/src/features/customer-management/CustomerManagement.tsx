@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCustomers, Customer } from '../../hooks/useCustomers';
 import CustomerModal from '../../components/CustomerModal';
 import ConfirmDialog from '../../components/feedback/ConfirmDialog';
@@ -92,6 +92,8 @@ const CustomerManagement: React.FC = () => {
   const [deleteError, setDeleteError] = useState<{ title: string; description: string; detail?: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [visionCustomer, setVisionCustomer] = useState<Customer | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
 
   const visibleCustomers = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -117,6 +119,20 @@ const CustomerManagement: React.FC = () => {
       return fields.some(value => value?.toLowerCase().includes(term));
     });
   }, [customers, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleCustomers.length / pageSize));
+  const paginatedCustomers = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return visibleCustomers.slice(start, start + pageSize);
+  }, [page, pageSize, visibleCustomers]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, pageSize]);
+
+  useEffect(() => {
+    setPage(current => Math.min(current, totalPages));
+  }, [totalPages]);
 
   const handleEdit = (c: Customer) => { setSelectedCustomer(c); setIsModalOpen(true); };
   const handleCreate = () => { setSelectedCustomer(undefined); setIsModalOpen(true); };
@@ -166,7 +182,7 @@ const CustomerManagement: React.FC = () => {
   };
 
   const toggleAll = () => {
-    const visibleIds = visibleCustomers.map(customer => customer.id ?? '');
+    const visibleIds = paginatedCustomers.map(customer => customer.id ?? '');
     const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selected.has(id));
 
     setSelected(prev => {
@@ -180,8 +196,10 @@ const CustomerManagement: React.FC = () => {
     });
   };
 
-  const allSelected = visibleCustomers.length > 0
-    && visibleCustomers.every(customer => selected.has(customer.id ?? ''));
+  const allSelected = paginatedCustomers.length > 0
+    && paginatedCustomers.every(customer => selected.has(customer.id ?? ''));
+  const firstVisible = visibleCustomers.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastVisible = Math.min(page * pageSize, visibleCustomers.length);
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 128px)', minHeight: 400 }}>
@@ -264,7 +282,7 @@ const CustomerManagement: React.FC = () => {
                 ? <SkeletonRows />
                 : visibleCustomers.length === 0
                   ? <CustomerManagementEmptyState onAdd={handleCreate} filtered={searchTerm.trim().length > 0} />
-                  : visibleCustomers.map((c, idx) => {
+                  : paginatedCustomers.map((c, idx) => {
                     const id = c.id ?? idx.toString();
                     const isChecked = selected.has(id);
 
@@ -404,7 +422,7 @@ const CustomerManagement: React.FC = () => {
         >
           <div className="flex items-center gap-4 text-xs" style={{ color: '#6b7280' }}>
             <span>
-              <strong style={{ color: '#111827' }}>{visibleCustomers.length}</strong> clientes
+              Mostrando <strong style={{ color: '#111827' }}>{firstVisible}-{lastVisible}</strong> de <strong style={{ color: '#111827' }}>{visibleCustomers.length}</strong> clientes
               {searchTerm.trim() ? (
                 <span>
                   {' '}
@@ -420,20 +438,22 @@ const CustomerManagement: React.FC = () => {
           </div>
           <div className="flex items-center gap-1 text-xs" style={{ color: '#6b7280' }}>
             <span>Por página:</span>
-            <select
+              <select
               className="rounded px-2 py-1 text-xs border"
               style={{ border: '1px solid #e5e7eb', outline: 'none', background: '#fff', fontSize: 11 }}
+                value={pageSize}
+                onChange={event => setPageSize(Number(event.target.value))}
             >
-              <option>25</option>
-              <option>50</option>
-              <option>100</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
             </select>
             <div className="flex items-center gap-0.5 ml-2">
-              <button className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white border border-transparent hover:border-gray-200 transition-all" style={{ color: '#9ca3af' }}>
+              <button type="button" aria-label="Página anterior" disabled={page <= 1} onClick={() => setPage(current => Math.max(1, current - 1))} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white border border-transparent hover:border-gray-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: '#9ca3af' }}>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <span className="px-2 py-1 rounded text-xs font-bold" style={{ background: 'var(--accent)', color: '#fff', minWidth: 24, textAlign: 'center' }}>1</span>
-              <button className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white border border-transparent hover:border-gray-200 transition-all" style={{ color: '#9ca3af' }}>
+              <span className="px-2 py-1 rounded text-xs font-bold" style={{ background: 'var(--accent)', color: '#fff', minWidth: 42, textAlign: 'center' }}>{page} / {totalPages}</span>
+              <button type="button" aria-label="Página siguiente" disabled={page >= totalPages} onClick={() => setPage(current => Math.min(totalPages, current + 1))} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white border border-transparent hover:border-gray-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed" style={{ color: '#9ca3af' }}>
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
               </button>
             </div>

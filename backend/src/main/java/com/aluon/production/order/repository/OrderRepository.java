@@ -22,6 +22,8 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     Optional<Order> findByCodigoOrden(String codigoOrden);
 
+    Optional<Order> findFirstByNotesOrderByCreatedAtAsc(String notes);
+
     long countByWorkflowStepIn(Collection<OrderWorkflowStep> steps);
 
     long countByEstado(OrderStatus estado);

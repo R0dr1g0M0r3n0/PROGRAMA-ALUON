@@ -55,6 +55,11 @@ public class OrderController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<WorkOrderRequestResponseDto> duplicate(@PathVariable UUID id) {
+        return ResponseEntity.ok(orderService.duplicate(id));
+    }
+
     @PatchMapping("/requests/{requestId}/workflow-step")
     public ResponseEntity<Void> updateWorkflowStep(@PathVariable String requestId,
                                                    @RequestBody OrderWorkflowUpdateRequest request) {
